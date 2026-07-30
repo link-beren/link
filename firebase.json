@@ -1,15 +1,18 @@
 {
-  "firestore": {
-    "rules": "firestore.rules",
-    "indexes": "firestore.indexes.json"
-  },
+  "firestore": [
+    {
+      "database": "usa",
+      "rules": "firestore.usa.rules",
+      "indexes": "firestore.usa.indexes.json"
+    }
+  ],
   "storage": {
     "rules": "storage.rules"
   },
   "functions": [
     {
       "source": "functions",
-      "codebase": "default",
+      "codebase": "usa",
       "ignore": [
         "node_modules",
         ".git",
@@ -20,7 +23,7 @@
   ],
   "hosting": [
     {
-      "target": "link-web",
+      "target": "us-web",
       "public": "apps/web/dist",
       "ignore": [
         "firebase.json",
@@ -46,44 +49,7 @@
       ]
     },
     {
-      "target": "admin-web",
-      "public": "admin-web",
-      "ignore": [
-        "firebase.json",
-        "**/.*",
-        "**/node_modules/**"
-      ],
-      "headers": [
-        {
-          "source": "**/*.html",
-          "headers": [
-            {
-              "key": "Cache-Control",
-              "value": "no-cache"
-            }
-          ]
-        },
-        {
-          "source": "**",
-          "headers": [
-            {
-              "key": "X-Frame-Options",
-              "value": "DENY"
-            },
-            {
-              "key": "X-Content-Type-Options",
-              "value": "nosniff"
-            },
-            {
-              "key": "Referrer-Policy",
-              "value": "same-origin"
-            }
-          ]
-        }
-      ]
-    },
-    {
-      "target": "school-web",
+      "target": "us-school-web",
       "public": "school-web",
       "ignore": [
         "firebase.json",

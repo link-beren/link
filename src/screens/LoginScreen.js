@@ -149,7 +149,7 @@ export default function LoginScreen() {
           // מסמך הצוות נוצר בשרת: הקוד מאומת מול schoolCodes ומשויך לבית הספר
           // הנכון. יצירת staff מהלקוח חסומה בחוקים, אחרת אפשר היה לזייף schoolId.
           try {
-            await httpsCallable(getFunctions(app, 'me-west1'), 'registerStaffWithCode')({
+            await httpsCallable(getFunctions(app, 'us-central1'), 'usRegisterStaffWithCode')({
               code: staffCode.trim(),
               nickname: resolvedNickname,
             });

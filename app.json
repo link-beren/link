@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Link",
-    "slug": "link-app",
+    "slug": "link-app-us",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -15,13 +15,13 @@
 
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.yahelberenstin.linkapp",
+      "bundleIdentifier": "com.yahelberenstin.linkappus",
       "buildNumber": "1",
       "infoPlist": {
-        "NSPhotoLibraryUsageDescription": "האפליקציה ניגשת לתמונות שלך כדי לאפשר לך להגדיר תמונת פרופיל.",
-        "NSCameraUsageDescription": "האפליקציה משתמשת במצלמה כדי לאפשר לך לצלם תמונת פרופיל.",
-        "NSUserNotificationsUsageDescription": "האפליקציה שולחת התראות כדי לעדכן אותך בהודעות ועדכונים חדשים.",
-        "NSMicrophoneUsageDescription": "האפליקציה עשויה להשתמש במיקרופון לצורך שיחות קוליות.",
+        "NSPhotoLibraryUsageDescription": "Link uses your photos so you can set a profile picture.",
+        "NSCameraUsageDescription": "Link uses the camera so you can take a profile picture.",
+        "NSUserNotificationsUsageDescription": "Link sends notifications to keep you updated on new messages.",
+        "NSMicrophoneUsageDescription": "Link may use the microphone for voice conversations.",
         "UIBackgroundModes": ["remote-notification"]
       },
       "privacyManifests": {
@@ -47,7 +47,7 @@
         "backgroundColor": "#ffffff"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.yahel_beren.linkapp",
+      "package": "com.yahel_beren.linkappus",
       "versionCode": 1,
       "googleServicesFile": "./google-services.json",
       "permissions": [
@@ -64,9 +64,8 @@
     },
 
     "extra": {
-      "eas": {
-        "projectId": "3eb15964-9247-44d7-a7e3-177364d33060"
-      }
+      "market": "US",
+      "eas": {}
     },
 
     "plugins": [
@@ -74,8 +73,8 @@
       [
         "expo-image-picker",
         {
-          "photosPermission": "האפליקציה ניגשת לתמונות שלך כדי לאפשר לך להגדיר תמונת פרופיל.",
-          "cameraPermission": "האפליקציה משתמשת במצלמה כדי לאפשר לך לצלם תמונת פרופיל."
+          "photosPermission": "Link uses your photos so you can set a profile picture.",
+          "cameraPermission": "Link uses the camera so you can take a profile picture."
         }
       ],
       "expo-secure-store"

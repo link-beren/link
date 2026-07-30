@@ -1,6 +1,6 @@
 {
-  "name": "functions",
-  "description": "Cloud Functions for link-app push notifications",
+  "name": "functions-usa",
+  "description": "Cloud Functions for Link US push notifications and admin callables",
   "engines": {
     "node": "20"
   },

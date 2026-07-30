@@ -39,11 +39,21 @@ export const authPersistenceReady = setPersistence(
   auth,
   browserLocalPersistence,
 );
-export const db = initializeFirestore(app, {
-  localCache: persistentLocalCache({
-    tabManager: persistentMultipleTabManager(),
-  }),
-});
+// US market runs against a NAMED Firestore database ('usa') inside the same
+// Firebase project. The Israeli app uses the project's default database.
+// Dropping the third argument here would silently point this build at Israeli data.
+export const US_DATABASE_ID = 'usa';
+
+export const db = initializeFirestore(
+  app,
+  {
+    localCache: persistentLocalCache({
+      tabManager: persistentMultipleTabManager(),
+    }),
+  },
+  US_DATABASE_ID,
+);
 export const storage = getStorage(app);
-// כל הפונקציות פרוסות ב-me-west1; בלי האזור המפורש הקריאה תפנה ל-us-central1
-export const functions = getFunctions(app, 'me-west1');
+// US Cloud Functions are deployed to us-central1 under the 'usa' codebase,
+// with every export prefixed `us` so it cannot collide with the Israeli codebase.
+export const functions = getFunctions(app, 'us-central1');

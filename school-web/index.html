@@ -284,8 +284,12 @@ const firebaseConfig = {
 };
 firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
-const db   = firebase.firestore();
-const fns  = firebase.app().functions('me-west1');
+// US market: named Firestore database inside the same Firebase project.
+// NOTE: compat-SDK named-database support must be smoke-tested before deploy —
+// if firestore('usa') silently resolves to the default DB, this portal reads Israeli data.
+const US_DATABASE_ID = 'usa';
+const db   = firebase.app().firestore(US_DATABASE_ID);
+const fns  = firebase.app().functions('us-central1');
 
 // ── State ────────────────────────────────────────────────────────
 let me          = null;   // { uid, email, nickname }
@@ -692,7 +696,7 @@ function confirmRotateCode() {
     'השתמשו בזה אם הקוד דלף.',
     async () => {
       try {
-        const res = await fns.httpsCallable('staffRotateSchoolCode')({});
+        const res = await fns.httpsCallable('usStaffRotateSchoolCode')({});
         schoolCode = res.data.code;
         document.getElementById('code-block').innerHTML = codeBlockHtml();
         toast('נוצר קוד חדש');
@@ -1105,7 +1109,7 @@ function confirmRemoveStaff(uid) {
     'ואדמין המערכת יכול להחזיר את השיוך בכל שלב.',
     async () => {
       try {
-        await fns.httpsCallable('staffRemoveStaffMember')({ uid });
+        await fns.httpsCallable('usStaffRemoveStaffMember')({ uid });
         toast('איש הצוות הוסר מבית הספר');
       } catch (e) { toast(e.message || 'שגיאה בהסרה', true); }
     });

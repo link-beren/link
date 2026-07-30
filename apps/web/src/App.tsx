@@ -10,7 +10,6 @@ import { DistressPage } from './pages/DistressPage';
 import { ChatPage } from './pages/ChatPage';
 import { MentorLayout, ProfileLayout, SocialLayout, StaffLayout } from './layouts/AppLayout';
 import { LoginPage } from './pages/LoginPage';
-import { MoELoginPage } from './pages/MoELoginPage';
 import { MentorActivityPage } from './pages/MentorActivityPage';
 import { MentorGuidePage } from './pages/MentorGuidePage';
 import { MentorHomePage } from './pages/MentorHomePage';
@@ -90,7 +89,6 @@ export default function App() {
         <Routes>
           <Route path="/" element={<HomeRedirect />} />
           <Route path="/login" element={<LoginPage />} />
-          <Route path="/login/moe" element={<MoELoginPage />} />
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
           <Route element={<ProtectedRoute allowedRoles={['mentor']} />}>

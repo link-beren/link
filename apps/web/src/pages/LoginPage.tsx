@@ -194,7 +194,7 @@ export function LoginPage() {
           // מסמך הצוות נוצר בשרת: הקוד מאומת מול schoolCodes ומשויך לבית הספר
           // הנכון. יצירת staff מהלקוח חסומה בחוקים, אחרת אפשר היה לזייף schoolId.
           try {
-            await httpsCallable(functions, 'registerStaffWithCode')({
+            await httpsCallable(functions, 'usRegisterStaffWithCode')({
               code: staffCode.trim(),
               nickname: resolvedNickname,
             });
@@ -425,45 +425,6 @@ export function LoginPage() {
           </button>
         </div>
 
-        <div style={{ marginTop: 20, paddingTop: 18, borderTop: '1px solid var(--color-border)' }}>
-          <div style={{ fontSize: 11, color: 'var(--color-text-subtle)', textAlign: 'center', marginBottom: 10, fontWeight: 700 }}>
-            כניסה דרך גורם מזהה
-          </div>
-          <Link
-            to="/login/moe"
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 10,
-              minHeight: 44,
-              border: '1px solid #003D8F',
-              borderRadius: 8,
-              background: 'white',
-              color: '#003D8F',
-              textDecoration: 'none',
-              fontSize: 13,
-              fontWeight: 900,
-              transition: 'background 0.15s',
-            }}
-          >
-            <svg width="20" height="20" viewBox="0 0 100 120" fill="none" aria-hidden="true">
-              <rect x="35" y="105" width="30" height="5" rx="2" fill="#003D8F"/>
-              <rect x="25" y="100" width="50" height="5" rx="2" fill="#003D8F"/>
-              <rect x="48" y="30" width="4" height="70" rx="2" fill="#003D8F"/>
-              <path d="M50 30 Q50 15 38 15 Q38 15 38 30" stroke="#003D8F" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
-              <path d="M50 30 Q50 20 28 20 Q28 20 28 30" stroke="#003D8F" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
-              <path d="M50 30 Q50 15 62 15 Q62 15 62 30" stroke="#003D8F" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
-              <path d="M50 30 Q50 20 72 20 Q72 20 72 30" stroke="#003D8F" strokeWidth="3.5" fill="none" strokeLinecap="round"/>
-              <ellipse cx="28" cy="28" rx="3" ry="5" fill="#003D8F"/>
-              <ellipse cx="38" cy="13" rx="3" ry="5" fill="#003D8F"/>
-              <ellipse cx="50" cy="28" rx="3" ry="5" fill="#003D8F"/>
-              <ellipse cx="62" cy="13" rx="3" ry="5" fill="#003D8F"/>
-              <ellipse cx="72" cy="28" rx="3" ry="5" fill="#003D8F"/>
-            </svg>
-            כניסה עם מנד&quot;ה (משרד החינוך)
-          </Link>
-        </div>
       </Card>
     </main>
   );

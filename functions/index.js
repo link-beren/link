@@ -6,7 +6,10 @@ const { getAuth } = require('firebase-admin/auth');
 const { Expo } = require('expo-server-sdk');
 
 initializeApp();
-const db = getFirestore();
+// US market: named Firestore database, separate from the Israeli default DB.
+const DB_ID = 'usa';
+const REGION = 'us-central1';
+const db = getFirestore(DB_ID);
 const expo = new Expo();
 
 async function sendExpoPushNotifications(messages) {
@@ -23,8 +26,8 @@ async function sendExpoPushNotifications(messages) {
 }
 
 // התראה על הודעת צ'אט חדשה (DM, קבוצה, או מעורבות חברתית) — לכל המשתתפים חוץ מהשולח
-exports.sendChatNotification = onDocumentCreated(
-  { document: 'chats/{chatId}/messages/{messageId}', region: 'me-west1' },
+exports.usSendChatNotification = onDocumentCreated(
+  { document: 'chats/{chatId}/messages/{messageId}', region: REGION, database: DB_ID },
   async event => {
     const message = event.data.data();
     const { chatId } = event.params;
@@ -102,8 +105,8 @@ async function resolveNotifySchoolIds(studentUid) {
 // התראה על קריאת מצוקה חדשה — רק לצוות של בתי הספר של המלווים.
 // הפונקציה גם כותבת notifySchoolIds חזרה על המסמך: החוקים והפורטל
 // מסננים לפיו (array-contains), כי Firestore לא יכול לעשות join.
-exports.sendDistressAlertNotification = onDocumentCreated(
-  { document: 'distressAlerts/{alertId}', region: 'me-west1' },
+exports.usSendDistressAlertNotification = onDocumentCreated(
+  { document: 'distressAlerts/{alertId}', region: REGION, database: DB_ID },
   async event => {
     const alert = event.data.data();
     const { alertId } = event.params;
@@ -152,7 +155,6 @@ exports.sendDistressAlertNotification = onDocumentCreated(
 //  3. ההרשאה נבדקת מול custom claim, שהלקוח לא יכול לזייף
 // ══════════════════════════════════════════════════════════════════════
 
-const REGION = 'me-west1';
 const ALLOWED_ROLES = ['student', 'mentor', 'staff', 'admin'];
 
 /** זורק שגיאה אם הקורא אינו אדמין מאומת. מחזיר את ה-uid שלו. */
@@ -230,13 +232,13 @@ async function applyAdminClaim(uid, beforeRole, afterRole) {
 // users/{uid} לא הפיק ולו לוג ריצה אחד, בעוד ש-created (sendChatNotification)
 // עובד באותו פרויקט ואותו region. מחיקה לא מטופלת כאן ממילא —
 // adminDeleteUser מוחק גם את חשבון ה-Auth ואיתו ה-claim.
-exports.syncAdminClaimOnCreate = onDocumentCreated(
+exports.usSyncAdminClaimOnCreate = onDocumentCreated(
   { document: 'users/{uid}', region: REGION },
   async event =>
     applyAdminClaim(event.params.uid, null, event.data?.data()?.role ?? null)
 );
 
-exports.syncAdminClaimOnUpdate = onDocumentUpdated(
+exports.usSyncAdminClaimOnUpdate = onDocumentUpdated(
   { document: 'users/{uid}', region: REGION },
   async event =>
     applyAdminClaim(
@@ -250,7 +252,7 @@ exports.syncAdminClaimOnUpdate = onDocumentUpdated(
  * מחיקת משתמש: מסמך Firestore + חשבון Auth + כל ההפניות היתומות.
  * data: { uid: string }
  */
-exports.adminDeleteUser = onCall({ region: REGION }, async request => {
+exports.usAdminDeleteUser = onCall({ region: REGION }, async request => {
   const callerUid = requireAdmin(request);
   const uid = request.data?.uid;
 
@@ -351,7 +353,7 @@ exports.adminDeleteUser = onCall({ region: REGION }, async request => {
  * רץ בשרת כי מחיקת תת-אוספים אפשרית רק ב-Admin SDK (recursiveDelete).
  * data: { groupId: string }
  */
-exports.adminDeleteGroup = onCall({ region: REGION }, async request => {
+exports.usAdminDeleteGroup = onCall({ region: REGION }, async request => {
   const callerUid = requireAdmin(request);
   const groupId = request.data?.groupId;
 
@@ -394,7 +396,7 @@ exports.adminDeleteGroup = onCall({ region: REGION }, async request => {
  * ולכן שינוי role חייב לעבור כאן.
  * data: { uid: string, role: 'student'|'mentor'|'staff'|'admin' }
  */
-exports.adminSetUserRole = onCall({ region: REGION }, async request => {
+exports.usAdminSetUserRole = onCall({ region: REGION }, async request => {
   const callerUid = requireAdmin(request);
   const { uid, role } = request.data || {};
 
@@ -448,7 +450,7 @@ const MAX_PASSWORD_LENGTH = 128;
  * למה זה עובר בשרת: ה-Auth REST API שזמין ללקוח מאפשר לשנות סיסמה רק
  * של המשתמש המחובר עצמו. updateUser קיים אך ורק ב-Admin SDK.
  */
-exports.adminSetUserPassword = onCall({ region: REGION }, async request => {
+exports.usAdminSetUserPassword = onCall({ region: REGION }, async request => {
   const callerUid = requireAdmin(request);
   const { uid, password } = request.data || {};
 
@@ -572,7 +574,7 @@ async function mergeClaims(uid, patch) {
  *
  * data: { code: string, nickname?: string }
  */
-exports.registerStaffWithCode = onCall({ region: REGION }, async request => {
+exports.usRegisterStaffWithCode = onCall({ region: REGION }, async request => {
   if (!request.auth) {
     throw new HttpsError('unauthenticated', 'נדרשת התחברות');
   }
@@ -628,7 +630,7 @@ exports.registerStaffWithCode = onCall({ region: REGION }, async request => {
  * יצירת בית ספר + הגרלת קוד צוות.
  * data: { name: string, city?: string }
  */
-exports.adminCreateSchool = onCall({ region: REGION }, async request => {
+exports.usAdminCreateSchool = onCall({ region: REGION }, async request => {
   const callerUid = requireAdmin(request);
   const name = String(request.data?.name || '').trim();
   const city = String(request.data?.city || '').trim();
@@ -667,7 +669,7 @@ exports.adminCreateSchool = onCall({ region: REGION }, async request => {
  * הגרלת קוד חדש לבית ספר. הקוד הישן נמחק ומפסיק לעבוד מיד.
  * data: { schoolId: string }
  */
-exports.adminRotateSchoolCode = onCall({ region: REGION }, async request => {
+exports.usAdminRotateSchoolCode = onCall({ region: REGION }, async request => {
   const callerUid = requireAdmin(request);
   const schoolId = String(request.data?.schoolId || '').trim();
 
@@ -702,7 +704,7 @@ exports.adminRotateSchoolCode = onCall({ region: REGION }, async request => {
  * (allow write: if false) כי הצמדת הקוד למסמך חייבת להישאר עקבית.
  * data: { schoolId: string, name?: string, city?: string, active?: boolean }
  */
-exports.adminUpdateSchool = onCall({ region: REGION }, async request => {
+exports.usAdminUpdateSchool = onCall({ region: REGION }, async request => {
   const callerUid = requireAdmin(request);
   const { schoolId, name, city, active } = request.data || {};
 
@@ -748,7 +750,7 @@ exports.adminUpdateSchool = onCall({ region: REGION }, async request => {
  * צריך לעדכן את ה-claim — ולכן זה עובר כאן.
  * data: { uid: string, schoolId: string|null }
  */
-exports.adminMoveUserSchool = onCall({ region: REGION }, async request => {
+exports.usAdminMoveUserSchool = onCall({ region: REGION }, async request => {
   const callerUid = requireAdmin(request);
   const { uid, schoolId } = request.data || {};
 
@@ -835,7 +837,7 @@ async function requireStaff(request) {
  * מהקורא. הקוד הישן נמחק מ-schoolCodes ולכן מפסיק לעבוד מיידית;
  * מי שכבר נרשם איתו לא מושפע, כי השיוך שמור על מסמך המשתמש.
  */
-exports.staffRotateSchoolCode = onCall({ region: REGION }, async request => {
+exports.usStaffRotateSchoolCode = onCall({ region: REGION }, async request => {
   const { uid, schoolId } = await requireStaff(request);
 
   const schoolRef = db.collection('schools').doc(schoolId);
@@ -875,7 +877,7 @@ exports.staffRotateSchoolCode = onCall({ region: REGION }, async request => {
  *
  * data: { uid: string }
  */
-exports.staffRemoveStaffMember = onCall({ region: REGION }, async request => {
+exports.usStaffRemoveStaffMember = onCall({ region: REGION }, async request => {
   const { uid: callerUid, schoolId } = await requireStaff(request);
   const targetUid = String(request.data?.uid || '').trim();
 
