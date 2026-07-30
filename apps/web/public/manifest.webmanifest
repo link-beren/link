@@ -1,0 +1,20 @@
+{
+  "name": "Link",
+  "short_name": "Link",
+  "description": "פלטפורמת ליווי, חונכות וקהילה לבית הספר",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "dir": "rtl",
+  "lang": "he",
+  "background_color": "#0f172a",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "/link-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,86 @@
+{
+  "expo": {
+    "name": "Link",
+    "slug": "link-app",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.yahelberenstin.linkapp",
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "האפליקציה ניגשת לתמונות שלך כדי לאפשר לך להגדיר תמונת פרופיל.",
+        "NSCameraUsageDescription": "האפליקציה משתמשת במצלמה כדי לאפשר לך לצלם תמונת פרופיל.",
+        "NSUserNotificationsUsageDescription": "האפליקציה שולחת התראות כדי לעדכן אותך בהודעות ועדכונים חדשים.",
+        "NSMicrophoneUsageDescription": "האפליקציה עשויה להשתמש במיקרופון לצורך שיחות קוליות.",
+        "UIBackgroundModes": ["remote-notification"]
+      },
+      "privacyManifests": {
+        "NSPrivacyAccessedAPITypes": [
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryUserDefaults",
+            "NSPrivacyAccessedAPITypeReasons": ["CA92.1"]
+          },
+          {
+            "NSPrivacyAccessedAPIType": "NSPrivacyAccessedAPICategoryFileTimestamp",
+            "NSPrivacyAccessedAPITypeReasons": ["C617.1"]
+          }
+        ],
+        "NSPrivacyCollectedDataTypes": [],
+        "NSPrivacyTracking": false,
+        "NSPrivacyTrackingDomains": []
+      }
+    },
+
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.yahel_beren.linkapp",
+      "versionCode": 1,
+      "googleServicesFile": "./google-services.json",
+      "permissions": [
+        "android.permission.INTERNET",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.CAMERA",
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE",
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT",
+        "com.google.android.c2dm.permission.RECEIVE"
+      ]
+    },
+
+    "extra": {
+      "eas": {
+        "projectId": "3eb15964-9247-44d7-a7e3-177364d33060"
+      }
+    },
+
+    "plugins": [
+      "expo-notifications",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "האפליקציה ניגשת לתמונות שלך כדי לאפשר לך להגדיר תמונת פרופיל.",
+          "cameraPermission": "האפליקציה משתמשת במצלמה כדי לאפשר לך לצלם תמונת פרופיל."
+        }
+      ],
+      "expo-secure-store"
+    ],
+
+    "owner": "yahel_beren"
+  }
+}

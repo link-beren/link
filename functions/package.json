@@ -1,0 +1,14 @@
+{
+  "name": "functions",
+  "description": "Cloud Functions for link-app push notifications",
+  "engines": {
+    "node": "20"
+  },
+  "main": "index.js",
+  "dependencies": {
+    "expo-server-sdk": "^3.10.0",
+    "firebase-admin": "^12.6.0",
+    "firebase-functions": "^5.1.1"
+  },
+  "private": true
+}

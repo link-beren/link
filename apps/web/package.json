@@ -1,0 +1,28 @@
+{
+  "name": "link-web",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "hosting:deploy": "npm run build && cd ../.. && firebase deploy --only hosting:link-web --project link-app-965dd",
+    "hosting:preview": "npm run build && firebase hosting:channel:deploy link-web-preview --only link-web --project link-app-965dd --expires 7d",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@sentry/react": "^10.64.0",
+    "firebase": "^12.15.0",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.0.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "typescript": "^5.8.0",
+    "vite": "^7.0.0"
+  }
+}

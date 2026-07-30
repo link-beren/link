@@ -1,0 +1,337 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    // הרשאת אדמין נקבעת ע"י custom claim בלבד — הלקוח לא יכול לזייף אותה.
+    // ה-claim מוגדר בשרת (adminSetUserRole / syncAdminClaim).
+    // שים לב: פעולות כתיבה של אדמין (מחיקת משתמש, שינוי תפקיד) רצות
+    // ב-Cloud Functions עם Admin SDK ולכן עוקפות את החוקים כאן;
+    // isAdmin() נחוץ רק לקריאות שהפאנל עושה ישירות מהדפדפן.
+    function isAdmin() {
+      return isAuth() && request.auth.token.get('admin', false) == true;
+    }
+
+    // ─── שכבת בתי הספר ────────────────────────────────────────────────────
+    // מסמך המשתמש של המבקש. נקרא רק כשה-claim חסר, כדי לחסוך get() בכל
+    // הערכת חוק (get() נספר במסגרת ה-quota של הקריאה).
+    function myDoc() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+
+    // schoolId נכתב כ-custom claim ע"י registerStaffWithCode /
+    // adminMoveUserSchool. הלקוח חייב לרענן טוקן (getIdToken(true)) אחרי
+    // הקריאה, אחרת ה-claim עדיין ריק — ואז נופלים למסמך המשתמש.
+    function claimSchoolId() {
+      return request.auth.token.get('schoolId', '');
+    }
+
+    function mySchoolId() {
+      return claimSchoolId() != '' ? claimSchoolId() : myDoc().get('schoolId', '');
+    }
+
+    function myRole() {
+      return request.auth.token.get('admin', false) == true
+        ? 'admin'
+        : myDoc().get('role', '');
+    }
+
+    function isStaffOf(schoolId) {
+      return isAuth() && schoolId != '' && mySchoolId() == schoolId && myRole() == 'staff';
+    }
+
+    // ─── Schools ──────────────────────────────────────────────────────────
+    match /schools/{schoolId} {
+      // קריאה פתוחה — רשימת בתי הספר מוצגת בטופס ההרשמה לפני אימות.
+      // המסמך הציבורי לא מכיל את הקוד; הוא יושב ב-private/code.
+      allow read: if true;
+
+      // יצירה/עריכה/מחיקה רק דרך adminCreateSchool / adminUpdateSchool /
+      // adminRotateSchoolCode (Admin SDK), שמייצרות גם את מסמכי הקוד.
+      allow create, update, delete: if false;
+
+      // הקוד נחשף לאדמין, ולצוות בית הספר עצמו.
+      // אתר המנהל (school-web) מציג אותו כדי שמנהל בית ספר יוכל לצרף
+      // מורים חדשים בלי לעבור דרך אדמין המערכת. החשיפה צרה בכוונה:
+      // isStaffOf בודק גם שיוך לבית הספר וגם role == 'staff', ולכן
+      // צוות של בית ספר אחר או מתנדב לא מגיעים לכאן.
+      match /private/{docId} {
+        allow read: if isAdmin() || isStaffOf(schoolId);
+        allow write: if false;
+      }
+    }
+
+    // מיפוי הפוך code -> schoolId. חסום לחלוטין לקריאה מהלקוח, אחרת
+    // אפשר היה למנות קודים. האימות נעשה בשרת בלבד.
+    match /schoolCodes/{code} {
+      allow read, write: if false;
+    }
+
+    // ─── Users ────────────────────────────────────────────────────────────
+    match /users/{userId} {
+      allow read: if isAuth();
+
+      // יצירה — רק עצמך, ורק תלמיד או מתנדב.
+      // staff ו-admin נוצרים אך ורק בשרת:
+      //   staff  -> registerStaffWithCode (מאמת קוד בית ספר ומציב schoolId)
+      //   admin  -> adminSetUserRole / grant-admin.js
+      // קודם היה כאן קוד צוות אחד קבוע בלקוח ('K7m2Q9x4'), שנחשף לכל מי
+      // שקרא את החוקים או את קוד המובייל.
+      allow create: if isAuth() && request.auth.uid == userId &&
+        request.resource.data.get('role', '') in ['student', 'mentor'] &&
+        // מתנדב חייב להשתייך לבית ספר קיים — כאן נקבעת השכבה החדשה.
+        (request.resource.data.get('role', '') != 'mentor' || (
+          request.resource.data.get('schoolId', '') != '' &&
+          exists(/databases/$(database)/documents/schools/$(request.resource.data.schoolId))
+        )) &&
+        // תלמיד אינו מתויג לבית ספר — מתנדב מכל בית ספר יכול ללוות אותו.
+        (request.resource.data.get('role', '') != 'student' ||
+         request.resource.data.get('schoolId', '') == '');
+
+      allow update: if isAuth() && (
+        // אדמין מנהל שיוך לבית ספר/כיתה, חברות בקבוצות ואישור מתנדבים.
+        // רשימת המפתחות סגורה בכוונה: שינוי role חייב להישאר בלעדי
+        // ל-adminSetUserRole, ששומר על סנכרון ה-claim ועל האדמין האחרון.
+        (isAdmin() && request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['schoolId', 'schoolName', 'classId', 'className',
+                    'joinedGroupIds', 'mentorStatus'])) ||
+
+        // עדכון עצמי — אסור לשנות role או schoolId (מעבר בית ספר הוא
+        // פעולת אדמין דרך adminMoveUserSchool, שמעדכן גם את ה-claim).
+        (request.auth.uid == userId &&
+         request.resource.data.get('role', null) == resource.data.get('role', null) &&
+         request.resource.data.get('schoolId', '') == resource.data.get('schoolId', '')) ||
+
+        // צוות מאשר/דוחה מתנדבים ומשייך אותם לכיתה — אך ורק של בית הספר שלו.
+        // classId נוסף לרשימה עבור אתר המנהל: שיוך מתנדב לכיתה היה עד כה
+        // פעולת אדמין בלבד, ולכן מנהל בית ספר לא יכול היה לתקן שיוך שגוי
+        // שנקבע בהרשמה. schoolId עצמו נשאר חסום — מעבר בית ספר הוא עדיין
+        // adminMoveUserSchool, שמסנכרן גם את ה-claim.
+        (request.auth.uid != userId &&
+         request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['mentorStatus', 'classId', 'className']) &&
+         resource.data.get('role', '') == 'mentor' &&
+         isStaffOf(resource.data.get('schoolId', '')) &&
+         // כיתת היעד חייבת להשתייך לאותו בית ספר, אחרת אפשר היה
+         // לשייך מתנדב לכיתה של בית ספר אחר ולזהם שם את הדוחות.
+         (request.resource.data.get('classId', null) == resource.data.get('classId', null) ||
+          request.resource.data.get('classId', '') == '' ||
+          (exists(/databases/$(database)/documents/classes/$(request.resource.data.classId)) &&
+           get(/databases/$(database)/documents/classes/$(request.resource.data.classId))
+             .data.get('schoolId', '') == mySchoolId()))) ||
+
+        // הסרה הדדית מרשימת חברים
+        (request.auth.uid != userId &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['friends']) &&
+         resource.data.get('friends', []).hasAny([request.auth.uid]) &&
+         !request.resource.data.friends.hasAny([request.auth.uid])) ||
+
+        // הוספה לרשימת חברים
+        (request.auth.uid != userId &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['friends']) &&
+         !resource.data.get('friends', []).hasAny([request.auth.uid]) &&
+         request.resource.data.friends.hasAny([request.auth.uid]))
+      );
+
+      // מחיקה נעשית אך ורק דרך הפונקציה adminDeleteUser (Admin SDK),
+      // שמוחקת גם את חשבון ה-Auth ואת ההפניות היתומות.
+      allow delete: if false;
+    }
+
+    // ─── Classes ──────────────────────────────────────────────────────────
+    match /classes/{classId} {
+      // קריאה פתוחה — נדרשת בטופס ההרשמה לפני אימות
+      allow read: if true;
+
+      // כיתה שייכת לבית ספר. קודם היה כאן isAuth() בלבד, כך שכל תלמיד
+      // יכול היה למחוק או לשנות כל כיתה במערכת.
+      allow create: if isAdmin() ||
+        (isStaffOf(request.resource.data.get('schoolId', '')) &&
+         request.resource.data.get('schoolId', '') == mySchoolId());
+      allow update: if isAdmin() || (
+        isStaffOf(resource.data.get('schoolId', '')) &&
+        request.resource.data.get('schoolId', '') == resource.data.get('schoolId', '')
+      );
+      allow delete: if isAdmin() || isStaffOf(resource.data.get('schoolId', ''));
+    }
+
+    // ─── Groups ──────────────────────────────────────────────────────────
+    match /groups/{groupId} {
+      allow read: if isAuth();
+      allow create: if isAuth() &&
+        request.resource.data.createdBy == request.auth.uid;
+      // אדמין עורך כל קבוצה מהפאנל (שם, תיאור, קטגוריה, אייקון, צבע)
+      allow update: if isAuth() && (
+        isAdmin() ||
+        resource.data.createdBy == request.auth.uid ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['memberCount'])
+      );
+      allow delete: if isAuth() && (isAdmin() || resource.data.createdBy == request.auth.uid);
+
+      match /members/{uid} {
+        allow read: if isAuth();
+        // אדמין מצרף גם משתמשים אחרים; משתמש רגיל רק את עצמו
+        allow create: if isAuth() && (isAdmin() || request.auth.uid == uid);
+
+        // שינוי תפקיד חבר (מנהל/חבר) — פעולת אדמין בלבד.
+        // קודם לא היה חוק update כלל, ולכן כל עדכון נחסם.
+        allow update: if isAdmin();
+
+        // ה-uid הוא מזהה המסמך; אין שדה uid בתוכו (ראה src/groups.js).
+        // התנאי הקודם resource.data.uid == request.auth.uid בדק שדה שלא
+        // קיים ולכן תמיד היה false — הוסר. יציאה מקבוצה היא תמיד עצמית,
+        // ובעל הקבוצה יכול להסיר חברים.
+        allow delete: if isAuth() && (
+          isAdmin() ||
+          request.auth.uid == uid ||
+          get(/databases/$(database)/documents/groups/$(groupId)).data.createdBy == request.auth.uid
+        );
+      }
+    }
+
+    // ─── Chats ───────────────────────────────────────────────────────────
+    match /chats/{chatId} {
+      // אדמין קורא את כל השיחות — הפאנל מאזין לאוסף כולו,
+      // ובלי זה ההאזנה נופלת ב-permission-denied ולשונית השיחות ריקה
+      allow read: if isAdmin() || (isAuth() &&
+        request.auth.uid in resource.data.get('participants', []));
+
+      // אדמין יוצר/משלים מסמך שיחה לקבוצה שהוא מנהל, גם בלי להיות משתתף
+      allow create: if isAuth() && (isAdmin() ||
+        request.auth.uid in request.resource.data.get('participants', []));
+
+      allow update: if isAuth() && (
+        isAdmin() ||
+        request.auth.uid in resource.data.get('participants', []) ||
+        (resource.data.get('type', '') == 'group' &&
+         request.resource.data.diff(resource.data).affectedKeys().hasOnly(['participants']) &&
+         request.resource.data.participants.hasAll(resource.data.get('participants', [])) &&
+         request.resource.data.participants.hasAll([request.auth.uid])) ||
+        (request.resource.data.diff(resource.data).affectedKeys()
+           .hasOnly(['helpRequested', 'helpRequestedAt', 'helpRequestedBy']) &&
+         request.resource.data.get('helpRequestedBy', '') == request.auth.uid)
+      );
+
+      match /messages/{messageId} {
+        // אדמין קורא הודעות מכל שיחה (כפתור "פתח שיחה" בפאנל)
+        allow read: if isAdmin() || (isAuth() && (
+          !exists(/databases/$(database)/documents/chats/$(chatId)) ||
+          request.auth.uid in
+            get(/databases/$(database)/documents/chats/$(chatId)).data.get('participants', [])));
+
+        allow create: if isAuth() && (
+          !exists(/databases/$(database)/documents/chats/$(chatId)) ||
+          request.auth.uid in
+            get(/databases/$(database)/documents/chats/$(chatId)).data.get('participants', [])
+        );
+
+        // אדמין מוחק תוכן פוגעני מקבוצות; משתמש רגיל רק את ההודעות שלו
+        allow update, delete: if isAuth() && (
+          isAdmin() ||
+          resource.data.senderId == request.auth.uid
+        );
+      }
+    }
+
+    // ─── Friend Requests ──────────────────────────────────────────────────
+    match /friendRequests/{requestId} {
+      allow read: if isAuth() && (
+        resource.data.fromUid == request.auth.uid ||
+        resource.data.toUid == request.auth.uid
+      );
+      allow create: if isAuth() &&
+        request.resource.data.fromUid == request.auth.uid;
+      allow update: if isAuth() && resource.data.toUid == request.auth.uid;
+      allow delete: if isAuth() && (
+        resource.data.fromUid == request.auth.uid ||
+        resource.data.toUid == request.auth.uid
+      );
+    }
+
+    // ─── Distress Alerts ──────────────────────────────────────────────────
+    // לתלמיד אין שיוך לבית ספר, ולכן הניתוב נקבע בשרת:
+    // sendDistressAlertNotification סורק את שיחות הליווי של התלמיד, מוציא
+    // את בתי הספר של המלווים וכותב notifySchoolIds. הצוות מסנן ב-
+    // array-contains על השדה הזה. קודם היה כאן read: if isAuth() — כל
+    // משתמש, כולל תלמידים, יכול היה לקרוא את כל מצוקות המערכת.
+    match /distressAlerts/{alertId} {
+      allow read: if isAdmin() ||
+        (isAuth() && resource.data.get('uid', '') == request.auth.uid) ||
+        (isAuth() && myRole() == 'staff' &&
+         resource.data.get('notifySchoolIds', []).hasAny([mySchoolId()]));
+
+      // הלקוח לא מנתב לעצמו — notifySchoolIds נכתב אך ורק ע"י הפונקציה.
+      allow create: if isAuth() &&
+        request.resource.data.uid == request.auth.uid &&
+        !request.resource.data.keys().hasAny(['notifySchoolIds', 'unrouted']);
+
+      // סימון כטופל — אדמין או צוות שהתראה נותבה אליו.
+      allow update: if request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['status', 'handled', 'handledBy', 'handledAt']) && (
+        isAdmin() ||
+        (isAuth() && myRole() == 'staff' &&
+         resource.data.get('notifySchoolIds', []).hasAny([mySchoolId()]))
+      );
+
+      allow delete: if false;
+    }
+
+    // ─── Mentoring Hours ──────────────────────────────────────────────────
+    // schoolId מועתק לכאן (denormalization) כי חוקי Firestore לא יכולים
+    // לעשות join: שאילתת הצוות חייבת להיות where('schoolId','==',...)
+    // ולכן השדה חייב לשבת על המסמך עצמו.
+    match /mentoringHours/{hoursId} {
+      allow read: if isAdmin() ||
+        (isAuth() && resource.data.get('mentorUid', '') == request.auth.uid) ||
+        isStaffOf(resource.data.get('schoolId', ''));
+
+      allow create: if isAuth() &&
+        request.resource.data.mentorUid == request.auth.uid &&
+        request.resource.data.get('schoolId', '') != '' &&
+        request.resource.data.schoolId == mySchoolId();
+
+      // אישור שעות — אדמין או צוות בית הספר של המתנדב.
+      allow update: if request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['status', 'approvedBy', 'approvedAt']) &&
+        (isAdmin() || isStaffOf(resource.data.get('schoolId', '')));
+
+      allow delete: if false;
+    }
+
+    // ─── Mentor Sessions (מעקב זמן אוטומטי) ──────────────────────────────
+    match /mentorSessions/{sessionId} {
+      allow read: if isAdmin() ||
+        (isAuth() && resource.data.get('uid', '') == request.auth.uid) ||
+        isStaffOf(resource.data.get('schoolId', ''));
+
+      allow create: if isAuth() &&
+        request.resource.data.uid == request.auth.uid &&
+        request.resource.data.get('schoolId', '') == mySchoolId();
+
+      allow update: if isAuth() &&
+        resource.data.uid == request.auth.uid &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['endAt', 'minutes']);
+
+      allow delete: if false;
+    }
+
+    // ─── Reflections (רפלקציות של מתנדבים) ───────────────────────────────
+    // האוסף נמצא בשימוש ב-MentorReflectionPage ו-MentorActivityPage אך
+    // מעולם לא היה לו בלוק חוקים, ולכן כל קריאה וכתיבה נדחו והדף היה שבור.
+    // רפלקציה היא אישית: רק המתנדב עצמו (והאדמין) רואים אותה.
+    match /reflections/{reflectionId} {
+      allow read: if isAdmin() ||
+        (isAuth() && resource.data.get('mentorUid', '') == request.auth.uid);
+
+      allow create: if isAuth() &&
+        request.resource.data.mentorUid == request.auth.uid;
+
+      allow update, delete: if isAuth() &&
+        resource.data.get('mentorUid', '') == request.auth.uid;
+    }
+
+  }
+}
