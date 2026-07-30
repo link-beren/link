@@ -4,7 +4,7 @@ import {
   TextInput, Alert, ActivityIndicator,
 } from 'react-native';
 import { getAuth } from 'firebase/auth';
-import { collection, query, orderBy, onSnapshot, doc } from 'firebase/firestore';
+import { collection, query, where, orderBy, onSnapshot, doc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { joinGroup, leaveGroup, createGroup } from '../groups';
 import { colors, radius, font } from '../theme';
@@ -36,7 +36,9 @@ function withOpacity(hex, alpha) {
 }
 
 export default function DiscoverScreen() {
-  const { authorized } = useRoleGuard(['student', 'mentor']);
+  // profile carries schoolId, so this reuses the listener useRoleGuard
+  // already holds instead of opening a second one on the same document.
+  const { authorized, profile } = useRoleGuard(['student', 'mentor']);
   const [activeFilter, setActiveFilter] = useState('all');
   const [groups, setGroups] = useState(null);
   const [myGroupIds, setMyGroupIds] = useState([]);
@@ -48,13 +50,27 @@ export default function DiscoverScreen() {
   const [submitting, setSubmitting] = useState(false);
   const auth = getAuth();
   const user = auth.currentUser;
+  const schoolId = profile ? profile.schoolId || null : undefined;
 
-  // כל ה-hooks מעל לכל early return
+  // All hooks stay above every early return.
+  //
+  // Groups belong to a school. A shared national group would put students from
+  // two districts in one chat, which is exactly what the isolation model
+  // exists to prevent, so the filter is mandatory rather than a nicety.
   useEffect(() => {
-    const q = query(collection(db, 'groups'), orderBy('name'));
+    if (schoolId === undefined) return;
+    if (!schoolId) {
+      setGroups([]);
+      return;
+    }
+    const q = query(
+      collection(db, 'groups'),
+      where('schoolId', '==', schoolId),
+      orderBy('name')
+    );
     const unsub = onSnapshot(q, snap => setGroups(snap.docs.map(d => ({ id: d.id, ...d.data() }))), () => setGroups([]));
     return unsub;
-  }, []);
+  }, [schoolId]);
 
   useEffect(() => {
     if (!user) return;
@@ -104,6 +120,7 @@ export default function DiscoverScreen() {
         accentColor: style.color,
         uid: user.uid,
         nickname: myName(),
+        schoolId,
       });
       setNewName('');
       setNewDesc('');

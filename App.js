@@ -180,8 +180,8 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [role, setRole] = useState(null);
   const [mentorStatus, setMentorStatus] = useState(null);
-  const [className, setClassName] = useState(null);
-  const [classId, setClassId] = useState(null);
+  const [homeroomName, setHomeroomName] = useState(null);
+  const [homeroomId, setHomeroomId] = useState(null);
   // בית הספר של המשתמש — צוות ומתנדבים בלבד. לתלמידים אין שיוך.
   const [schoolId, setSchoolId] = useState(null);
   const [pendingCount, setPendingCount] = useState(0);
@@ -224,8 +224,8 @@ export default function App() {
           }
 
           setMentorStatus(data.mentorStatus || null);
-          setClassName(data.className || null);
-          setClassId(data.classId || null);
+          setHomeroomName(data.homeroomName || null);
+          setHomeroomId(data.homeroomId || null);
           setSchoolId(data.schoolId || null);
           setLoading(false);
 
@@ -235,7 +235,7 @@ export default function App() {
             startTracking({
               uid: u.uid,
               schoolId: data.schoolId,
-              classId: data.classId || null,
+              homeroomId: data.homeroomId || null,
               mentorName: data.nickname || u.email?.split('@')[0] || 'מתנדב/ת',
             });
           } else {
@@ -250,8 +250,8 @@ export default function App() {
       } else {
         setRole(null);
         setMentorStatus(null);
-        setClassName(null);
-        setClassId(null);
+        setHomeroomName(null);
+        setHomeroomId(null);
         setSchoolId(null);
         setAdminViewRole(null);
         AsyncStorage.removeItem('admin_view_role').catch(() => {});
@@ -330,10 +330,10 @@ export default function App() {
   const isAdmin = role === 'admin';
   const effectiveRole = isAdmin ? adminViewRole : role;
 
-  // האזנה גלובלית להתראות מצוקה חדשות — עבור צוות בית-הספר.
-  // ההתראה מנותבת ל-notifySchoolIds (בתי הספר של המתנדבים שמלווים את התלמיד),
-  // ולכן חייבים לסנן לפי בית הספר — בלי הסינון השאילתה כולה נדחית בחוקים.
-  // אדמין קורא הכול, ולכן אצלו אין תנאי בית ספר.
+  // Global listener for new distress alerts — for school staff.
+  // An alert belongs to the student's own school, so this must filter by
+  // schoolId: without the filter the rules reject the entire query, not just
+  // the rows outside the school. Admins read everything, so no filter there.
   useEffect(() => {
     if (!user) return;
     if (isAdmin) {
@@ -347,7 +347,7 @@ export default function App() {
     if (effectiveRole !== 'staff' || !schoolId) return;
     const alertsQuery = query(
       collection(db, 'distressAlerts'),
-      where('notifySchoolIds', 'array-contains', schoolId),
+      where('schoolId', '==', schoolId),
       orderBy('createdAt', 'desc'),
       limit(20)
     );
@@ -384,7 +384,7 @@ export default function App() {
     if (!isAdmin && mentorStatus !== 'approved') {
       return (
         <NavigationContainer>
-          <MentorPendingScreen mentorStatus={mentorStatus} className={className} />
+          <MentorPendingScreen mentorStatus={mentorStatus} homeroomName={homeroomName} />
         </NavigationContainer>
       );
     }

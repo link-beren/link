@@ -47,13 +47,13 @@ export default function StaffPortalScreen({ navigation }) {
     return unsub;
   }, [schoolId]);
 
-  // ההתראות מנותבות בשרת: sendDistressAlertNotification כותב notifySchoolIds
-  // לפי בתי הספר של המלווים של התלמיד.
+  // Alerts belong to the student's own school. The server re-reads schoolId
+  // from the student's user document, so this value is not client-supplied.
   useEffect(() => {
     if (!schoolId) return;
     const q = query(
       collection(db, 'distressAlerts'),
-      where('notifySchoolIds', 'array-contains', schoolId),
+      where('schoolId', '==', schoolId),
       orderBy('createdAt', 'desc')
     );
     const unsub = onSnapshot(q, snap => setAlerts(snap.docs.map(d => ({ id: d.id, ...d.data() }))), () => setAlerts([]));
@@ -348,7 +348,7 @@ export default function StaffPortalScreen({ navigation }) {
             <View style={{ flex: 1 }}>
               <Text style={s.studentName}>{item.nickname || item.email}</Text>
               <Text style={s.studentSub}>{item.email}</Text>
-              {!!item.className && <Text style={s.studentClass}>{item.className}</Text>}
+              {!!item.homeroomName && <Text style={s.studentClass}>{item.homeroomName}</Text>}
             </View>
             {item.mentorStatus === 'pending' ? (
               <View style={s.alertActions}>
@@ -378,7 +378,7 @@ export default function StaffPortalScreen({ navigation }) {
     const selectedClass = classes.find(c => c.id === selectedClassId);
 
     if (selectedClass) {
-      const classMentors = mentors.filter(m => m.classId === selectedClass.id);
+      const classMentors = mentors.filter(m => m.homeroomId === selectedClass.id);
       const classPendingMentors = classMentors.filter(m => m.mentorStatus === 'pending');
       const classApprovedMentors = classMentors.filter(m => m.mentorStatus === 'approved');
       // הכיתה שייכת לבית הספר, ולכן כל איש צוות בבית הספר יכול לאשר —
@@ -458,8 +458,8 @@ export default function StaffPortalScreen({ navigation }) {
             <View style={s.emptyCard}><Text style={s.emptyTxt}>עדיין לא נוצרו כיתות</Text></View>
           )}
           {classes.map(c => {
-            const classMentorCount = mentors.filter(m => m.classId === c.id).length;
-            const classPendingCount = mentors.filter(m => m.classId === c.id && m.mentorStatus === 'pending').length;
+            const classMentorCount = mentors.filter(m => m.homeroomId === c.id).length;
+            const classPendingCount = mentors.filter(m => m.homeroomId === c.id && m.mentorStatus === 'pending').length;
             const mine = myClassIds.has(c.id);
             return (
               <TouchableOpacity key={c.id} style={s.studentRow} onPress={() => setSelectedClassId(c.id)}>

@@ -3,7 +3,17 @@ import {
 } from 'firebase/firestore';
 import { db } from './firebase';
 
-export async function createGroup({ name, description, category, icon, accentColor, uid, nickname }) {
+/**
+ * schoolId is required, not optional. The rules reject a group document
+ * without one, and reject one whose schoolId is not the creator's own school,
+ * so a group can never span two schools. Callers pass it from the signed-in
+ * user's profile.
+ */
+export async function createGroup({ name, description, category, icon, accentColor, uid, nickname, schoolId }) {
+  if (!schoolId) {
+    throw new Error('createGroup: schoolId is required');
+  }
+
   const groupRef = doc(collection(db, 'groups'));
   const batch = writeBatch(db);
 
@@ -13,6 +23,7 @@ export async function createGroup({ name, description, category, icon, accentCol
     category,
     icon,
     accentColor,
+    schoolId,
     createdBy: uid,
     createdByName: nickname,
     memberCount: 1,
@@ -30,6 +41,7 @@ export async function createGroup({ name, description, category, icon, accentCol
     type: 'group',
     groupId: groupRef.id,
     groupName: name,
+    schoolId,
     participants: [uid],
   }, { merge: true });
 

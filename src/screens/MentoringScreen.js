@@ -9,6 +9,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { db } from '../firebase';
 import { colors, radius, font } from '../theme';
 import Avatar from '../components/Avatar';
+import useMySchoolId from '../hooks/useMySchoolId';
 
 // מזהה שיחת ליווי — חייב להיות זהה לזה שהווב בונה (VolunteersPage), אחרת
 // אותה זוגיות תלמיד-מתנדב מקבלת שני מסמכי שיחה שונים בכל פלטפורמה.
@@ -32,12 +33,26 @@ export default function MentoringScreen({ navigation }) {
   const [history, setHistory] = useState(null);
   const auth = getAuth();
   const user = auth.currentUser;
+  const schoolId = useMySchoolId();
 
+  // Peer mentors are students at the same school, so the list is school-scoped.
+  // Without the schoolId filter the rules reject the whole query and the tab
+  // renders empty rather than over-broad.
   useEffect(() => {
-    const q = query(collection(db, 'users'), where('role', '==', 'mentor'), where('mentorStatus', '==', 'approved'));
+    if (schoolId === undefined) return;
+    if (!schoolId) {
+      setMentors([]);
+      return;
+    }
+    const q = query(
+      collection(db, 'users'),
+      where('schoolId', '==', schoolId),
+      where('role', '==', 'mentor'),
+      where('mentorStatus', '==', 'approved')
+    );
     const unsub = onSnapshot(q, snap => setMentors(snap.docs.map(d => ({ id: d.id, ...d.data() }))), () => setMentors([]));
     return unsub;
-  }, []);
+  }, [schoolId]);
 
   useEffect(() => {
     if (!user) return;

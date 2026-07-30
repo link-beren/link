@@ -4,8 +4,8 @@
  * כותב סשנים ל-Firestore ומגיש סיכום יומי אוטומטי לאישור המורה.
  *
  * Schema:
- *   mentorSessions/{id}: { uid, schoolId, classId, date, startAt, endAt?, minutes? }
- *   mentoringHours/{id}:  { mentorUid, mentorName, schoolId, classId, date, minutes, type:'auto', status:'pending', createdAt }
+ *   mentorSessions/{id}: { uid, schoolId, homeroomId, date, startAt, endAt?, minutes? }
+ *   mentoringHours/{id}:  { mentorUid, mentorName, schoolId, homeroomId, date, minutes, type:'auto', status:'pending', createdAt }
  *
  * schoolId חייב לשבת על כל מסמך — חוקי האבטחה דורשים
  * request.resource.data.schoolId == mySchoolId() ביצירה,
@@ -42,7 +42,7 @@ async function _beginSession() {
     const ref = await addDoc(collection(db, 'mentorSessions'), {
       uid: _uid,
       schoolId: _schoolId,
-      classId: _classId || null,
+      homeroomId: _classId || null,
       date: _dateStr(),
       startAt: serverTimestamp(),
     });
@@ -95,7 +95,7 @@ async function _submitYesterday() {
       mentorUid: _uid,
       mentorName: _mentorName || 'מתנדב/ת',
       schoolId: _schoolId,
-      classId: _classId || null,
+      homeroomId: _classId || null,
       date: yesterday,
       minutes: totalMins,
       type: 'auto',
@@ -109,9 +109,9 @@ async function _submitYesterday() {
 
 /**
  * מפעיל מעקב עבור מנטור מאושר.
- * @param {{ uid: string, schoolId: string|null, classId: string|null, mentorName: string }} opts
+ * @param {{ uid: string, schoolId: string|null, homeroomId: string|null, mentorName: string }} opts
  */
-export function startTracking({ uid, schoolId, classId, mentorName }) {
+export function startTracking({ uid, schoolId, homeroomId, mentorName }) {
   // בלי schoolId אין למה לעקוב — כל כתיבה תידחה
   if (!schoolId) { stopTracking(); return; }
   if (_uid === uid && _schoolId === schoolId) return; // כבר עוקבים
@@ -119,7 +119,7 @@ export function startTracking({ uid, schoolId, classId, mentorName }) {
 
   _uid = uid;
   _schoolId = schoolId;
-  _classId = classId || null;
+  _classId = homeroomId || null;
   _mentorName = mentorName || 'מתנדב/ת';
 
   // הגש שעות אתמול אם לא הוגשו

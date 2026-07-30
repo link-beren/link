@@ -295,7 +295,11 @@ const fns  = firebase.app().functions('us-central1');
 let me          = null;   // { uid, email, nickname }
 let mySchoolId  = null;
 let mySchool    = null;   // מסמך schools/{id}
-let schoolCode  = null;   // נשלף רק בלחיצה על "הצג"
+// Two codes, not one. The student code is read aloud in a classroom; the staff
+// code grants the ability to read every student's distress alerts. A single
+// shared code would hand the second to everyone who needs the first.
+// Each is fetched only when its "reveal" button is pressed.
+let schoolCodes = { student: null, staff: null };
 
 let users     = [];   // כל המשתמשים של בית הספר (צוות + מתנדבים)
 let classes   = [];
@@ -379,7 +383,7 @@ function doSignOut() {
   unsubs.forEach(u => u()); unsubs = [];
   users = []; classes = []; hours = []; alerts = []; sessions = [];
   loaded = { users: false, classes: false, hours: false, alerts: false, sessions: false };
-  schoolCode = null;
+  schoolCodes = { student: null, staff: null };
   auth.signOut();
 }
 
@@ -472,10 +476,10 @@ function loadAll() {
       renderAll();
     }, err => onErr('שעות', err)));
 
-  // ההתראה לא נושאת schoolId — לתלמיד אין שיוך. הניתוב נעשה בשרת
-  // (sendDistressAlertNotification) שכותב notifySchoolIds לפי בתי
-  // הספר של המלווים, וזה השדה היחיד שהכללים מתירים לסנן עליו.
-  unsubs.push(db.collection('distressAlerts').where('notifySchoolIds', 'array-contains', mySchoolId)
+  // A US student carries schoolId, so the alert is scoped directly. The
+  // server overwrites this field from the student's user document before
+  // anyone reads it, so a forged value on the client cannot misroute an alert.
+  unsubs.push(db.collection('distressAlerts').where('schoolId', '==', mySchoolId)
     .onSnapshot(snap => {
       alerts = snap.docs.map(d => ({ id: d.id, ...d.data() }))
         .sort((a, b) => tsMs(b.createdAt) - tsMs(a.createdAt));
@@ -552,7 +556,7 @@ function renderOverview() {
   const pendingH    = hours.filter(h => h.status === 'pending');
   const approvedH   = hours.filter(h => h.status === 'approved');
   const last30      = hours.filter(h => daysAgo(hourDate(h)) <= 30);
-  const noClass     = ms.filter(m => !m.classId).length;
+  const noClass     = ms.filter(m => !m.homeroomId).length;
 
   const html = `
     ${mySchool.active === false ? `
@@ -609,7 +613,7 @@ function renderOverview() {
               <tr>
                 <td><b>${esc(m.nickname || '—')}</b></td>
                 <td class="muted" style="direction:ltr;text-align:right">${esc(m.email || '—')}</td>
-                <td>${esc(m.className || '—')}</td>
+                <td>${esc(m.homeroomName || '—')}</td>
                 <td class="muted">${fmtDate(m.createdAt)}</td>
                 <td>
                   <button class="btn-sm btn-success" onclick="setMentorStatus('${m.id}','approved')">אישור</button>
@@ -623,8 +627,8 @@ function renderOverview() {
     <div class="section-title">פעילות 14 הימים האחרונים <span class="hint">שעות ליווי מדווחות לפי יום</span></div>
     <div class="section-block">${sparkline(dailyHours(14))}</div>
 
-    <div class="section-title">קוד ההרשמה של בית הספר</div>
-    <div class="section-block section-pad" id="code-block">${codeBlockHtml()}</div>
+    <div class="section-title">Student registration code</div>
+    <div class="section-block section-pad" id="code-block-student">${codeBlockHtml('student')}</div>
   `;
   setPanel('overview', html);
 }
@@ -655,55 +659,85 @@ function sparkline(data) {
     </div>`).join('')}</div>`;
 }
 
-// ── קוד בית הספר ────────────────────────────────────────────────
-function codeBlockHtml() {
+// ── School registration codes ───────────────────────────────────
+const CODE_COPY = {
+  student: {
+    containerId: 'code-block-student',
+    field: 'studentCode',
+    blurb: 'Students and peer-mentor applicants enter this code when they create their account. ' +
+           'It is safe to read out in a classroom or print on a handout — it grants no staff access.',
+    rotateTitle: 'Regenerate the student code',
+    rotateBody: 'A new code is issued and the current one stops working immediately. ' +
+                'Anyone already registered is unaffected — their school is already recorded. ' +
+                'Do this if the code spread beyond your school.',
+  },
+  staff: {
+    containerId: 'code-block-staff',
+    field: 'staffCode',
+    blurb: 'A new staff member signs up in the app, picks "School staff" and enters this code. ' +
+           'It is the only way to get staff access, which includes reading every student\'s distress ' +
+           'alerts — never post it anywhere students can see it.',
+    rotateTitle: 'Regenerate the staff code',
+    rotateBody: 'A new code is issued and the current one stops working immediately. ' +
+                'Staff who already registered are unaffected. Do this if the code leaked.',
+  },
+};
+
+function codeBlockHtml(audience) {
+  const meta = CODE_COPY[audience];
+  const value = schoolCodes[audience];
   return `
-    <p style="font-size:13px;color:var(--text2);line-height:1.8;margin-bottom:16px">
-      מורה חדש/ה נרשם/ת באפליקציה ובוחר/ת "צוות בית ספר", ומזין/ה את הקוד הזה.
-      הקוד הוא הדרך היחידה לקבל הרשאת צוות — אל תפרסמו אותו בערוץ פתוח.
-    </p>
+    <p style="font-size:13px;color:var(--text2);line-height:1.8;margin-bottom:16px">${meta.blurb}</p>
     <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
-      ${schoolCode
-        ? `<span class="code-box" id="code-text">${esc(schoolCode)}</span>
-           <button class="btn-sm btn-info" onclick="copyCode()">📋 העתקה</button>
-           <button class="btn-sm btn-ghost" onclick="hideCode()">הסתרה</button>`
+      ${value
+        ? `<span class="code-box">${esc(value)}</span>
+           <button class="btn-sm btn-info" onclick="copyCode('${audience}')">📋 Copy</button>
+           <button class="btn-sm btn-ghost" onclick="hideCode('${audience}')">Hide</button>`
         : `<span class="code-box">••••••••</span>
-           <button class="btn-sm btn-info" onclick="revealCode()">👁 הצגת הקוד</button>`}
-      <button class="btn-sm btn-danger" onclick="confirmRotateCode()">🔄 רענון קוד</button>
+           <button class="btn-sm btn-info" onclick="revealCode('${audience}')">👁 Show code</button>`}
+      <button class="btn-sm btn-danger" onclick="confirmRotateCode('${audience}')">🔄 New code</button>
     </div>`;
 }
 
-async function revealCode() {
+function refreshCodeBlock(audience) {
+  const el = document.getElementById(CODE_COPY[audience].containerId);
+  if (el) el.innerHTML = codeBlockHtml(audience);
+}
+
+async function revealCode(audience) {
   try {
     const snap = await db.collection('schools').doc(mySchoolId).collection('private').doc('code').get();
-    if (!snap.exists) { toast('לא נמצא קוד לבית הספר. פנה לאדמין המערכת.', true); return; }
-    schoolCode = snap.data().code;
-    document.getElementById('code-block').innerHTML = codeBlockHtml();
+    const value = snap.exists ? snap.data()[CODE_COPY[audience].field] : null;
+    if (!value) { toast('No code found for this school. Contact a system admin.', true); return; }
+    schoolCodes[audience] = value;
+    refreshCodeBlock(audience);
   } catch (e) {
-    // עד לפריסת חוקי האבטחה המעודכנים הקריאה חסומה לצוות
     toast(e.code === 'permission-denied'
-      ? 'הצגת הקוד דורשת פריסה של firestore.rules המעודכן'
-      : 'שגיאה בשליפת הקוד', true);
+      ? 'Showing the code requires the updated firestore.rules to be deployed.'
+      : 'Could not fetch the code.', true);
   }
 }
-function hideCode() { schoolCode = null; document.getElementById('code-block').innerHTML = codeBlockHtml(); }
-function copyCode() {
-  navigator.clipboard.writeText(schoolCode || '').then(() => toast('הקוד הועתק'));
+
+function hideCode(audience) { schoolCodes[audience] = null; refreshCodeBlock(audience); }
+
+function copyCode(audience) {
+  navigator.clipboard.writeText(schoolCodes[audience] || '').then(() => toast('Code copied'));
 }
-function confirmRotateCode() {
-  openModal('רענון קוד ההרשמה',
-    'ייווצר קוד חדש, והקוד הנוכחי יפסיק לעבוד מיידית. מי שכבר נרשם איתו לא מושפע — השיוך שלו כבר שמור. ' +
-    'השתמשו בזה אם הקוד דלף.',
-    async () => {
-      try {
-        const res = await fns.httpsCallable('usStaffRotateSchoolCode')({});
-        schoolCode = res.data.code;
-        document.getElementById('code-block').innerHTML = codeBlockHtml();
-        toast('נוצר קוד חדש');
-      } catch (e) {
-        toast(e.message || 'שגיאה ברענון הקוד', true);
-      }
-    });
+
+function confirmRotateCode(audience) {
+  const meta = CODE_COPY[audience];
+  openModal(meta.rotateTitle, meta.rotateBody, async () => {
+    try {
+      // The audience argument matters: without it the function would rotate
+      // the student code while the staff panel showed the result.
+      const res = await fns.httpsCallable('usStaffRotateSchoolCode')({ audience });
+      schoolCodes[audience] = res.data.code;
+      refreshCodeBlock(audience);
+      toast('New code issued');
+    } catch (e) {
+      toast(e.message || 'Could not regenerate the code.', true);
+    }
+  });
 }
 
 // ══════════════════════════════════════════════════════════════════
@@ -776,7 +810,7 @@ function renderMentors() {
   const list = mentors().filter(m =>
     (!q || (m.nickname || '').toLowerCase().includes(q) || (m.email || '').toLowerCase().includes(q)) &&
     (!mentorStatusFilter || (m.mentorStatus || 'pending') === mentorStatusFilter) &&
-    (!mentorClassFilter || m.classId === mentorClassFilter)
+    (!mentorClassFilter || m.homeroomId === mentorClassFilter)
   ).sort((a, b) => statusRank(a) - statusRank(b) || (a.nickname || '').localeCompare(b.nickname || '', 'he'));
 
   setPanel('mentors', `
@@ -815,7 +849,7 @@ function renderMentors() {
               <td>
                 <select class="inline-select" onchange="assignClass('${m.id}', this.value)">
                   <option value="">— ללא כיתה —</option>
-                  ${classes.map(c => `<option value="${esc(c.id)}" ${m.classId === c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}
+                  ${classes.map(c => `<option value="${esc(c.id)}" ${m.homeroomId === c.id ? 'selected' : ''}>${esc(c.name)}</option>`).join('')}
                 </select>
               </td>
               <td class="num">${fmtH(sumHours(mh.filter(h => h.status === 'approved')))}</td>
@@ -849,18 +883,18 @@ async function setMentorStatus(uid, status) {
   } catch (e) { toast('שגיאה: ' + (e.code || e.message), true); }
 }
 
-async function assignClass(uid, classId) {
-  const c = classById(classId);
+async function assignClass(uid, homeroomId) {
+  const c = classById(homeroomId);
   try {
-    await db.collection('users').doc(uid).update(classId
-      ? { classId, className: c ? c.name : null }
-      // מחיקה ולא null: הכללים בודקים get('classId','') == '' ומול null
+    await db.collection('users').doc(uid).update(homeroomId
+      ? { homeroomId, homeroomName: c ? c.name : null }
+      // מחיקה ולא null: הכללים בודקים get('homeroomId','') == '' ומול null
       // הבדיקה נכשלת ועוברת לאימות כיתה שאינה קיימת
       : {
-          classId: firebase.firestore.FieldValue.delete(),
-          className: firebase.firestore.FieldValue.delete(),
+          homeroomId: firebase.firestore.FieldValue.delete(),
+          homeroomName: firebase.firestore.FieldValue.delete(),
         });
-    toast(classId ? `שויך ל${c ? c.name : 'כיתה'}` : 'השיוך לכיתה בוטל');
+    toast(homeroomId ? `שויך ל${c ? c.name : 'כיתה'}` : 'השיוך לכיתה בוטל');
   } catch (e) {
     toast(e.code === 'permission-denied'
       ? 'שיוך לכיתה דורש פריסה של firestore.rules המעודכן'
@@ -993,8 +1027,8 @@ function renderClasses() {
         <thead><tr><th>שם הכיתה</th><th>מתנדבים משויכים</th><th>שעות מאושרות</th><th>נוצרה</th><th style="width:170px">פעולות</th></tr></thead>
         <tbody>
           ${classes.length ? classes.map(c => {
-            const inClass = mentors().filter(m => m.classId === c.id);
-            const ch = hours.filter(h => h.classId === c.id && h.status === 'approved');
+            const inClass = mentors().filter(m => m.homeroomId === c.id);
+            const ch = hours.filter(h => h.homeroomId === c.id && h.status === 'approved');
             return `
             <tr>
               <td><b>${esc(c.name || '—')}</b></td>
@@ -1042,9 +1076,9 @@ function renameClass(id) {
         await db.collection('classes').doc(id).update({ name: name.trim() });
         // השם שמור בהעתק גם על מסמכי המתנדבים; מסנכרנים כדי שהטבלאות
         // לא יציגו את השם הישן
-        const affected = mentors().filter(m => m.classId === id);
+        const affected = mentors().filter(m => m.homeroomId === id);
         for (const m of affected) {
-          try { await db.collection('users').doc(m.id).update({ className: name.trim() }); } catch {}
+          try { await db.collection('users').doc(m.id).update({ homeroomName: name.trim() }); } catch {}
         }
         toast('השם עודכן');
       } catch (e) { toast('שגיאה: ' + (e.code || e.message), true); }
@@ -1053,7 +1087,7 @@ function renameClass(id) {
 
 function confirmDeleteClass(id) {
   const c = classById(id);
-  const inClass = mentors().filter(m => m.classId === id);
+  const inClass = mentors().filter(m => m.homeroomId === id);
   openModal(`מחיקת ${c ? c.name : 'כיתה'}`,
     inClass.length
       ? `${inClass.length} מתנדבים משויכים לכיתה הזו. הם לא יימחקו, אבל יישארו עם שיוך לכיתה שאינה קיימת — ` +
@@ -1075,8 +1109,8 @@ function renderStaff() {
   const list = staffMembers().sort((a, b) => (a.nickname || '').localeCompare(b.nickname || '', 'he'));
 
   setPanel('staff', `
-    <div class="section-title">צירוף איש צוות חדש</div>
-    <div class="section-block section-pad" id="code-block-staff">${codeBlockHtml()}</div>
+    <div class="section-title">Add a staff member</div>
+    <div class="section-block section-pad" id="code-block-staff">${codeBlockHtml('staff')}</div>
 
     <div class="section-title">אנשי הצוות בבית הספר <span class="hint">${list.length} חשבונות</span></div>
     <div class="section-block">
@@ -1139,7 +1173,7 @@ function renderInsights() {
 
   const perClass = classes.map(c => ({
     name: c.name || '—',
-    value: sumHours(approvedR.filter(h => h.classId === c.id)),
+    value: sumHours(approvedR.filter(h => h.homeroomId === c.id)),
   })).sort((a, b) => b.value - a.value);
 
   const alertsRange = alerts.filter(a => daysAgo(dayOf(a.createdAt)) <= insightRange);
@@ -1189,7 +1223,7 @@ function renderInsights() {
               const mh = hours.filter(h => h.mentorUid === m.id);
               return `<tr>
                 <td><b>${esc(m.nickname || '—')}</b></td>
-                <td>${esc(m.className || '—')}</td>
+                <td>${esc(m.homeroomName || '—')}</td>
                 <td class="muted">${mh.length ? esc(fmtDay(hourDate(mh[0]))) : 'מעולם לא דיווח'}</td>
                 <td class="muted" style="direction:ltr;text-align:right">${esc(m.email || '—')}</td>
               </tr>`;
@@ -1283,7 +1317,7 @@ function renderReports() {
           ${rows.length ? rows.map(r => `
             <tr>
               <td><b>${esc(r.name)}</b></td>
-              <td>${esc(r.className)}</td>
+              <td>${esc(r.homeroomName)}</td>
               <td>${statusBadge(r.mentorStatus)}</td>
               <td class="num">${r.count}</td>
               <td class="num"><b>${fmtH(r.approved)}</b></td>
@@ -1315,7 +1349,7 @@ function reportRows() {
     return {
       name: m.nickname || '—',
       email: m.email || '',
-      className: m.className || (classById(m.classId) || {}).name || '—',
+      homeroomName: m.homeroomName || (classById(m.homeroomId) || {}).name || '—',
       mentorStatus: m.mentorStatus,
       count: mh.length,
       approved: sumHours(mh.filter(h => h.status === 'approved')),
@@ -1329,7 +1363,7 @@ function reportRows() {
 // ── יצוא ────────────────────────────────────────────────────────
 function exportReport() {
   const rows = reportRows().map(r => ({
-    'מתנדב/ת': r.name, 'אימייל': r.email, 'כיתה': r.className,
+    'מתנדב/ת': r.name, 'אימייל': r.email, 'כיתה': r.homeroomName,
     'סטטוס': statusText(r.mentorStatus), 'מספר דיווחים': r.count,
     'שעות מאושרות': fmtH(r.approved), 'שעות ממתינות': fmtH(r.pending),
     'שעות שנדחו': fmtH(r.rejected), 'דיווח אחרון': r.last,
@@ -1350,7 +1384,7 @@ function hourRow(h) {
   const m = userById(h.mentorUid) || {};
   return {
     'מתנדב/ת': mentorName(h), 'אימייל': m.email || '',
-    'כיתה': h.className || m.className || '',
+    'כיתה': h.homeroomName || m.homeroomName || '',
     'תאריך': hourDate(h), 'שעות': fmtH(hoursOf(h)),
     'תיאור': h.description || h.note || '',
     'מקור': h.type === 'auto' ? 'אוטומטי' : 'ידני',
@@ -1364,7 +1398,7 @@ function exportMentors() {
     const mh = hours.filter(h => h.mentorUid === m.id);
     return {
       'שם': m.nickname || '', 'אימייל': m.email || '',
-      'כיתה': m.className || '', 'סטטוס': statusText(m.mentorStatus),
+      'כיתה': m.homeroomName || '', 'סטטוס': statusText(m.mentorStatus),
       'שעות מאושרות': fmtH(sumHours(mh.filter(h => h.status === 'approved'))),
       'מספר דיווחים': mh.length,
       'דיווח אחרון': mh.length ? hourDate(mh[0]) : '',

@@ -1,4 +1,4 @@
-import { arrayRemove, arrayUnion, collection, doc, increment, onSnapshot, orderBy, query, serverTimestamp, writeBatch } from 'firebase/firestore';
+import { arrayRemove, arrayUnion, collection, doc, increment, onSnapshot, orderBy, query, serverTimestamp, where, writeBatch } from 'firebase/firestore';
 import { useEffect, useMemo, useState } from 'react';
 import { db } from '../lib/firebase';
 import { useAuth } from '../auth/useAuth';
@@ -59,14 +59,28 @@ export function DiscoverPage() {
   const [newCategory, setNewCategory] = useState<GroupCategory>('gaming');
   const [actionId, setActionId] = useState<string | null>(null);
 
+  const schoolId = profile?.schoolId;
+
+  // Groups belong to a school. Without the filter the rules reject the whole
+  // query — a Firestore query fails outright if any single result is
+  // unreadable — so the list would come back empty, not over-broad.
   useEffect(() => {
-    const groupsQuery = query(collection(db, 'groups'), orderBy('name'));
+    if (!schoolId) {
+      setGroups([]);
+      return;
+    }
+
+    const groupsQuery = query(
+      collection(db, 'groups'),
+      where('schoolId', '==', schoolId),
+      orderBy('name'),
+    );
     return onSnapshot(
       groupsQuery,
       (snapshot) => setGroups(snapshot.docs.map(getGroupData)),
       () => setGroups([]),
     );
-  }, []);
+  }, [schoolId]);
 
   useEffect(() => {
     if (!user) return;
@@ -90,7 +104,9 @@ export function DiscoverPage() {
   );
 
   async function createGroup() {
-    if (!user || !newName.trim()) return;
+    // schoolId is mandatory: the rules reject a group document without one,
+    // and reject one carrying a school other than the creator's.
+    if (!user || !newName.trim() || !schoolId) return;
     setActionId('create');
 
     try {
@@ -104,13 +120,14 @@ export function DiscoverPage() {
         category: newCategory,
         icon: meta.icon,
         accentColor: meta.color,
+        schoolId,
         createdBy: user.uid,
-        createdByName: profile?.nickname || user.email || 'משתמש/ת',
+        createdByName: profile?.nickname || user.email || 'A user',
         memberCount: 1,
         createdAt: serverTimestamp(),
       });
       batch.set(doc(db, 'groups', groupRef.id, 'members', user.uid), {
-        nickname: profile?.nickname || user.email || 'משתמש/ת',
+        nickname: profile?.nickname || user.email || 'A user',
         role: 'admin',
         joinedAt: serverTimestamp(),
       });
@@ -122,6 +139,7 @@ export function DiscoverPage() {
         type: 'group',
         groupId: groupRef.id,
         groupName: newName.trim(),
+        schoolId,
         participants: [user.uid],
       }, { merge: true });
 

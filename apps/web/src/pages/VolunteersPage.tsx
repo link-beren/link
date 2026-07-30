@@ -4,13 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/useAuth';
 import { Avatar, Button, Card, Chip, SearchBox } from '../components/ui';
 import { db } from '../lib/firebase';
+import { gradeLabel } from '../config/market';
 
 type MentorProfile = {
   id: string;
   nickname: string;
   email?: string;
   avatarUrl?: string;
-  className?: string;
+  gradeLevel?: string;
 };
 
 function getMentoringChatId(studentUid: string, mentorUid: string) {
@@ -24,9 +25,22 @@ export function VolunteersPage() {
   const [search, setSearch] = useState('');
   const [openingId, setOpeningId] = useState<string | null>(null);
 
+  const schoolId = profile?.schoolId;
+
   useEffect(() => {
+    // Peer mentors come from the student's own school. The schoolId filter is
+    // not cosmetic: the rules reject a read of any out-of-school user, and a
+    // Firestore query fails as a whole if a single result is unreadable — so
+    // without this filter the list does not come back partly filtered, it
+    // comes back empty.
+    if (!schoolId) {
+      setMentors([]);
+      return;
+    }
+
     const mentorsQuery = query(
       collection(db, 'users'),
+      where('schoolId', '==', schoolId),
       where('role', '==', 'mentor'),
       where('mentorStatus', '==', 'approved'),
     );
@@ -44,23 +58,23 @@ export function VolunteersPage() {
                   ? data.nickname
                   : typeof data.email === 'string'
                     ? data.email
-                    : 'חונך/ת',
+                    : 'Peer mentor',
               email: typeof data.email === 'string' ? data.email : undefined,
               avatarUrl: typeof data.avatarUrl === 'string' ? data.avatarUrl : undefined,
-              className: typeof data.className === 'string' ? data.className : undefined,
+              gradeLevel: typeof data.gradeLevel === 'string' ? data.gradeLevel : undefined,
             };
           }),
         );
       },
       () => setMentors([]),
     );
-  }, []);
+  }, [schoolId]);
 
   const filteredMentors = useMemo(() => {
     const term = search.trim().toLowerCase();
     if (!term) return mentors;
     return mentors.filter((mentor) =>
-      [mentor.nickname, mentor.email, mentor.className]
+      [mentor.nickname, mentor.email, gradeLabel(mentor.gradeLevel)]
         .filter(Boolean)
         .some((value) => value!.toLowerCase().includes(term)),
     );
@@ -120,13 +134,15 @@ export function VolunteersPage() {
       />
 
       <section className="mentor-grid" aria-live="polite">
-        {filteredMentors.length === 0 && <div className="empty-state">אין חונכים זמינים כרגע</div>}
+        {filteredMentors.length === 0 && (
+          <div className="empty-state">No peer mentors are available at your school right now</div>
+        )}
         {filteredMentors.map((mentor) => (
           <Card key={mentor.id} className="mentor-card">
             <Avatar name={mentor.nickname} src={mentor.avatarUrl} />
             <div>
               <h2>{mentor.nickname}</h2>
-              <p>{mentor.className || mentor.email || 'חונך/ת מאושר/ת'}</p>
+              <p>{gradeLabel(mentor.gradeLevel) || mentor.email || 'Approved peer mentor'}</p>
             </div>
             <Button
               type="button"

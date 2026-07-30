@@ -37,7 +37,7 @@ export default function MentorHomeScreen({ navigation }) {
   const [minutes, setMinutes] = useState('');
   const [note, setNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [className, setClassName] = useState(null);
+  const [homeroomName, setHomeroomName] = useState(null);
   const [todayMins, setTodayMins] = useState(0);
   const auth = getAuth();
   const user = auth.currentUser;
@@ -46,7 +46,7 @@ export default function MentorHomeScreen({ navigation }) {
   // כל ה-hooks מעל לכל early return
   useEffect(() => {
     if (!user) return;
-    const unsub = onSnapshot(doc(db, 'users', user.uid), d => setClassName(d.data()?.className || null), () => {});
+    const unsub = onSnapshot(doc(db, 'users', user.uid), d => setHomeroomName(d.data()?.homeroomName || null), () => {});
     return unsub;
   }, [user]);
 
@@ -162,8 +162,8 @@ export default function MentorHomeScreen({ navigation }) {
         mentorUid: user.uid,
         mentorName: mentorNickname || user.email?.split('@')[0] || 'מתנדב/ת',
         schoolId: profile.schoolId,
-        classId: profile.classId || null,
-        className: profile.className || null,
+        homeroomId: profile.homeroomId || null,
+        homeroomName: profile.homeroomName || null,
         studentUid: selectedStudent.uid,
         studentName: selectedStudent.name,
         minutes: mins,
@@ -214,7 +214,7 @@ export default function MentorHomeScreen({ navigation }) {
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator size="large" color={colors.primary} /></View>
       ) : (
         <ScrollView style={s.scroll} showsVerticalScrollIndicator={false}>
-          {!!className && <Text style={s.classPill}>🏫 כיתה: {className}</Text>}
+          {!!homeroomName && <Text style={s.classPill}>🏫 כיתה: {homeroomName}</Text>}
           <View style={s.statsGrid}>
             <View style={[s.statCard, { borderTopColor: colors.primary }]}>
               <Text style={s.statIcon}>⏱</Text>

@@ -31,8 +31,8 @@ type UserRow = {
   role?: string;
   mentorStatus?: string;
   schoolId?: string;
-  classId?: string;
-  className?: string;
+  homeroomId?: string;
+  homeroomName?: string;
 };
 
 type DistressAlert = {
@@ -124,7 +124,7 @@ export function StaffPortalPage() {
   const [tab, setTab] = useState<StaffTab>('dashboard');
   const [search, setSearch] = useState('');
   const [classFilter, setClassFilter] = useState('');
-  const [className, setClassName] = useState('');
+  const [homeroomName, setHomeroomName] = useState('');
   const [editingClass, setEditingClass] = useState<ClassRow | null>(null);
   const [editClassName, setEditClassName] = useState('');
 
@@ -144,14 +144,15 @@ export function StaffPortalPage() {
     [schoolId],
   );
 
-  // התראות מנותבות בשרת: sendDistressAlertNotification כותב notifySchoolIds
-  // לפי בתי הספר של המלווים של התלמיד (לתלמיד עצמו אין שיוך).
+  // Alerts belong to the student's own school. usSendDistressAlertNotification
+  // re-reads schoolId from the student's user document and writes it back
+  // here, so this filter cannot be spoofed by the reporting client.
   const alertsQuery = useMemo(
     () =>
       schoolId
         ? query(
             collection(db, 'distressAlerts'),
-            where('notifySchoolIds', 'array-contains', schoolId),
+            where('schoolId', '==', schoolId),
             orderBy('createdAt', 'desc'),
           )
         : null,
@@ -198,7 +199,7 @@ export function StaffPortalPage() {
   );
 
   // הכיתות של בית הספר הן מקור האמת לרשימת הכיתות. קודם היא נבנתה
-  // מ-classId של המשתמשים, מה שהחזיר גם כיתות של בתי ספר אחרים.
+  // מ-homeroomId של המשתמשים, מה שהחזיר גם כיתות של בתי ספר אחרים.
   const classOptions = useMemo(
     () => classes.map((row) => [row.id, row.name || row.id] as [string, string]),
     [classes],
@@ -208,8 +209,8 @@ export function StaffPortalPage() {
     () =>
       mentors.filter((row) => {
         const term = search.trim().toLowerCase();
-        const text = [row.nickname, row.email, row.className].filter(Boolean).join(' ').toLowerCase();
-        return (!term || text.includes(term)) && (!classFilter || row.classId === classFilter);
+        const text = [row.nickname, row.email, row.homeroomName].filter(Boolean).join(' ').toLowerCase();
+        return (!term || text.includes(term)) && (!classFilter || row.homeroomId === classFilter);
       }),
     [classFilter, mentors, search],
   );
@@ -262,16 +263,16 @@ export function StaffPortalPage() {
 
   async function submitClass(event: FormEvent) {
     event.preventDefault();
-    if (!className.trim() || !schoolId) return;
+    if (!homeroomName.trim() || !schoolId) return;
     await addDoc(collection(db, 'classes'), {
-      name: className.trim(),
+      name: homeroomName.trim(),
       // כיתה שייכת לבית ספר; בלי השדה הזה החוקים ידחו את היצירה
       schoolId,
       teacherUid: user?.uid || null,
       teacherName: profile?.nickname || profile?.email || null,
       createdAt: serverTimestamp(),
     });
-    setClassName('');
+    setHomeroomName('');
   }
 
   async function setMentorStatus(row: UserRow, mentorStatus: 'approved' | 'rejected') {
@@ -426,9 +427,9 @@ export function StaffPortalPage() {
               <form className="form-grid" onSubmit={(event) => void submitClass(event)}>
                 <label>
                   שם כיתה
-                  <input value={className} onChange={(event) => setClassName(event.target.value)} />
+                  <input value={homeroomName} onChange={(event) => setHomeroomName(event.target.value)} />
                 </label>
-                <Button type="submit" disabled={!className.trim()}>
+                <Button type="submit" disabled={!homeroomName.trim()}>
                   יצירה
                 </Button>
               </form>
@@ -440,7 +441,7 @@ export function StaffPortalPage() {
                 rows={classes.map((row) => [
                   row.name || row.id,
                   row.teacherName || row.teacherUid || '',
-                  mentors.filter((m) => m.classId === row.id).length,
+                  mentors.filter((m) => m.homeroomId === row.id).length,
                   <span className="row-actions" key={`${row.id}-actions`}>
                     <Button tone="muted" type="button" onClick={() => openEditClass(row)}>
                       עריכה
@@ -486,7 +487,7 @@ export function StaffPortalPage() {
               rows={pendingMentors.map((row) => [
                 row.nickname || 'חונך/ת',
                 row.email || '',
-                row.className || row.classId || '',
+                row.homeroomName || row.homeroomId || '',
                 <span className="row-actions" key={`${row.id}-mentor-actions`}>
                   <Button tone="success" type="button" onClick={() => void setMentorStatus(row, 'approved')}>
                     אשר
@@ -543,7 +544,7 @@ export function StaffPortalPage() {
             rows={filteredMentors.map((row) => [
               row.nickname || 'חונך/ת',
               row.email || '',
-              row.className || row.classId || '',
+              row.homeroomName || row.homeroomId || '',
               <Chip key={`${row.id}-status`} tone={getStatusTone(row.mentorStatus)}>
                 {row.mentorStatus === 'approved'
                   ? 'מאושר'
@@ -572,10 +573,10 @@ export function StaffPortalPage() {
                 את פריסת החונכים בכיתות בית הספר. */}
             <DataTable
               headers={['כיתה', 'חונכים', 'מהם מאושרים']}
-              rows={classOptions.map(([classId, label]) => [
+              rows={classOptions.map(([homeroomId, label]) => [
                 label,
-                mentors.filter((row) => row.classId === classId).length,
-                mentors.filter((row) => row.classId === classId && row.mentorStatus === 'approved')
+                mentors.filter((row) => row.homeroomId === homeroomId).length,
+                mentors.filter((row) => row.homeroomId === homeroomId && row.mentorStatus === 'approved')
                   .length,
               ])}
             />

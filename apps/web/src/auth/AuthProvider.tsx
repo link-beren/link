@@ -44,8 +44,8 @@ async function loadUserProfile(uid: string): Promise<Partial<UserProfile>> {
     schoolId: typeof data.schoolId === 'string' ? data.schoolId : undefined,
     schoolName:
       typeof data.schoolName === 'string' ? data.schoolName : undefined,
-    classId: typeof data.classId === 'string' ? data.classId : undefined,
-    className: typeof data.className === 'string' ? data.className : undefined,
+    homeroomId: typeof data.homeroomId === 'string' ? data.homeroomId : undefined,
+    homeroomName: typeof data.homeroomName === 'string' ? data.homeroomName : undefined,
     grade: typeof data.grade === 'string' ? data.grade : undefined,
   };
 }

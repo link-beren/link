@@ -87,6 +87,7 @@ export function ChatPage() {
   const [searchResults, setSearchResults] = useState<SearchUser[]>([]);
   const [searching, setSearching] = useState(false);
   const [helpRequested, setHelpRequested] = useState(false);
+  const schoolId = profile?.schoolId;
   const endRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -177,7 +178,11 @@ export function ChatPage() {
   async function handleSearch(value: string) {
     setSearch(value);
 
-    if (!user || value.trim().length < 2) {
+    // Without a school there is nobody to find. Running the query unfiltered
+    // would not return other schools' students \u2014 the rules reject the read,
+    // and a Firestore query fails as a whole if any single result is
+    // unreadable \u2014 it would just fail with a permission error.
+    if (!user || !schoolId || value.trim().length < 2) {
       setSearchResults([]);
       return;
     }
@@ -187,6 +192,7 @@ export function ChatPage() {
     try {
       const usersQuery = query(
         collection(db, 'users'),
+        where('schoolId', '==', schoolId),
         where('nickname', '>=', value.trim()),
         where('nickname', '<=', `${value.trim()}\uf8ff`),
         limit(12),

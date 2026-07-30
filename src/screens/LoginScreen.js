@@ -4,14 +4,13 @@ import {
   SafeAreaView, KeyboardAvoidingView, Platform, Alert, ActivityIndicator, ScrollView, Modal,
 } from 'react-native';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
-import { doc, setDoc, getDoc, collection, query, orderBy, where, onSnapshot } from 'firebase/firestore';
+import { doc, getDoc } from 'firebase/firestore';
 import { getFunctions, httpsCallable } from 'firebase/functions';
 import app, { db } from '../firebase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { colors, radius, font } from '../theme';
-
-const GRADES = ['א','ב','ג','ד','ה','ו','ז','ח','ט','י','יא','יב'];
+import { GRADE_LEVELS } from '../config/market';
 
 export default function LoginScreen() {
   const [role, setRole] = useState(null);
@@ -19,23 +18,20 @@ export default function LoginScreen() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [nickname, setNickname] = useState('');
-  const [staffCode, setStaffCode] = useState('');
+  // One code field for every role. There is no school picker: the school list
+  // is not publicly readable here, and a picker would let anyone enumerate
+  // every district on the platform. The code identifies the school.
+  const [schoolCode, setSchoolCode] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [classes, setClasses] = useState(null);
-  const [classId, setClassId] = useState(null);
-  const [className, setClassName] = useState(null);
   const [gradePickerOpen, setGradePickerOpen] = useState(false);
-  const [schools, setSchools] = useState(null);
-  const [schoolId, setSchoolId] = useState(null);
-  // שכבת הגיל של תלמיד — שדה נפרד מ-classId, שהוא מזהה כיתה של בית ספר
-  const [grade, setGrade] = useState(null);
+  const [gradeLevel, setGradeLevel] = useState(null);
 
   const auth = getAuth();
-  // תלמיד בוחר שכבת גיל בלבד (גלובלי), מתנדב בוחר בית ספר ואז כיתה
-  const needsGrade = mode === 'register' && role === 'student';
-  const needsClass = mode === 'register' && role === 'mentor';
-  const needsStaffCode = mode === 'register' && role === 'staff';
+  // Students and peer mentors pick a grade level; staff do not.
+  const isRegistering = mode === 'register';
+  const needsGrade = isRegistering && (role === 'student' || role === 'mentor');
+  const needsCode = isRegistering;
 
   useEffect(() => {
     async function loadSaved() {
@@ -59,52 +55,20 @@ export default function LoginScreen() {
     loadSaved();
   }, []);
 
-  // רשימת בתי הספר הפעילים — נדרשת לפני אימות, ולכן schools פתוח לקריאה
-  useEffect(() => {
-    const q = query(collection(db, 'schools'), where('active', '==', true), orderBy('name'));
-    const unsub = onSnapshot(q, snap => setSchools(snap.docs.map(d => ({ id: d.id, ...d.data() }))), () => setSchools([]));
-    return unsub;
-  }, []);
-
-  // הכיתות נטענות רק אחרי בחירת בית ספר, ומסוננות אליו
-  useEffect(() => {
-    if (!schoolId) { setClasses(null); return; }
-    const q = query(collection(db, 'classes'), where('schoolId', '==', schoolId), orderBy('name'));
-    const unsub = onSnapshot(q, snap => setClasses(snap.docs.map(d => ({ id: d.id, ...d.data() }))), () => setClasses([]));
-    return unsub;
-  }, [schoolId]);
-
-  function selectSchool(s) {
-    setSchoolId(s.id);
-    // החלפת בית ספר מאפסת כיתה שנבחרה קודם, אחרת היא תישאר של בית ספר אחר
-    setClassId(null);
-    setClassName(null);
-  }
-
-  function selectClass(c) {
-    setClassId(c.id);
-    setClassName(c.name);
-  }
-
   async function handleAuth() {
-    if (!email || !password) { Alert.alert('שגיאה', 'אנא מלא אימייל וסיסמה'); return; }
-    if ((needsGrade || needsClass) && !nickname.trim()) {
-      Alert.alert('שגיאה', 'אנא בחר כינוי'); return;
+    if (!email || !password) { Alert.alert('Error', 'Please enter your email and password'); return; }
+    if (needsGrade && !nickname.trim()) {
+      Alert.alert('Error', 'Please choose a display name'); return;
     }
-    if (needsGrade && !grade) {
-      Alert.alert('שגיאה', 'אנא בחר/י כיתה'); return;
+    if (needsGrade && !gradeLevel) {
+      Alert.alert('Error', 'Please select your grade level'); return;
     }
-    if (needsClass && !schoolId) {
-      Alert.alert('שגיאה', 'אנא בחר/י בית ספר'); return;
+    if (needsCode && !schoolCode.trim()) {
+      Alert.alert('Error', role === 'staff' ? 'Please enter your staff code' : 'Please enter your school code');
+      return;
     }
-    if (needsClass && !classId) {
-      Alert.alert('שגיאה', 'אנא בחר/י כיתה'); return;
-    }
-    if (needsStaffCode && !staffCode.trim()) {
-      Alert.alert('שגיאה', 'אנא הכנס/י קוד צוות'); return;
-    }
-    // אין יותר בדיקת קוד בלקוח — הקוד ייחודי לכל בית ספר ומאומת בשרת
-    // (registerStaffWithCode), כדי שלא ניתן יהיה לחלץ אותו מקוד האפליקציה.
+    // The code is never checked on the client. Each school has its own, and it
+    // is verified server-side so it cannot be extracted from the app bundle.
     setLoading(true);
     try {
       let userCred;
@@ -145,36 +109,27 @@ export default function LoginScreen() {
         userCred = await createUserWithEmailAndPassword(auth, email, password);
         const resolvedNickname = nickname.trim() || email.split('@')[0];
 
-        if (role === 'staff') {
-          // מסמך הצוות נוצר בשרת: הקוד מאומת מול schoolCodes ומשויך לבית הספר
-          // הנכון. יצירת staff מהלקוח חסומה בחוקים, אחרת אפשר היה לזייף schoolId.
-          try {
-            await httpsCallable(getFunctions(app, 'us-central1'), 'usRegisterStaffWithCode')({
-              code: staffCode.trim(),
-              nickname: resolvedNickname,
-            });
-            // הפונקציה מציבה claim schoolId. בלי רענון מפורש הטוקן שבידינו
-            // עדיין בלי ה-claim, וכל שאילתה מוגבלת-בית-ספר תיפול על הרשאות.
-            await userCred.user.getIdToken(true);
-          } catch (codeError) {
-            // הקוד שגוי — מוחקים את חשבון ה-Auth שנוצר עכשיו, אחרת יישאר חשבון
-            // בלי מסמך משתמש שגם חוסם הרשמה חוזרת עם אותו אימייל
-            try { await userCred.user.delete(); } catch {}
-            Alert.alert('שגיאה', codeError?.message || 'קוד הצוות שגוי');
-            setLoading(false);
-            return;
-          }
-        } else {
-          // שמור משתמש ב-Firestore
-          await setDoc(doc(db, 'users', userCred.user.uid), {
+        // Every role is created server-side. The rules deny client writes to
+        // /users outright: a client that could write its own document could
+        // put any schoolId in it and land inside another school.
+        try {
+          await httpsCallable(getFunctions(app, 'us-central1'), 'usRegisterWithSchoolCode')({
+            code: schoolCode.trim(),
+            role,
             nickname: resolvedNickname,
-            email: email,
-            role: role,
-            createdAt: new Date().toISOString(),
-            // תלמיד גלובלי — שכבת גיל בלבד, בלי שיוך לבית ספר או לכיתה
-            ...(role === 'student' ? { grade, className: 'כיתה ' + grade } : {}),
-            ...(role === 'mentor' ? { schoolId, classId, className, mentorStatus: 'pending' } : {}),
+            gradeLevel: gradeLevel || '',
           });
+          // The function sets the schoolId claim. Without an explicit refresh
+          // our token still lacks it and every school-scoped query fails.
+          await userCred.user.getIdToken(true);
+        } catch (codeError) {
+          // Registration failed, so delete the Auth account we just created.
+          // Left behind it blocks signing up again with the same email while
+          // granting access to nothing.
+          try { await userCred.user.delete(); } catch {}
+          Alert.alert('Error', codeError?.message || 'That code is not valid');
+          setLoading(false);
+          return;
         }
         await AsyncStorage.setItem('user_nickname', resolvedNickname);
       }
@@ -287,56 +242,63 @@ export default function LoginScreen() {
               </TouchableOpacity>
             )}
 
-            {(needsGrade || needsClass) && (
+            {needsGrade && (
               <View>
                 <TextInput
                   style={s.input}
-                  placeholder="כינוי (השם שיופיע בצ׳אט) 😎"
+                  placeholder="Display name (shown in chat) 😎"
                   placeholderTextColor={colors.text3}
                   value={nickname}
                   onChangeText={setNickname}
-                  textAlign="right"
                   maxLength={20}
                 />
                 <Text style={s.charCount}>{nickname.length}/20</Text>
               </View>
             )}
 
-            {needsStaffCode && (
-              <TextInput
-                style={s.input}
-                placeholder="קוד צוות"
-                placeholderTextColor={colors.text3}
-                value={staffCode}
-                onChangeText={setStaffCode}
-                textAlign="right"
-                secureTextEntry
-              />
+            {needsCode && (
+              <View style={{ marginBottom: 12 }}>
+                <TextInput
+                  style={s.input}
+                  placeholder={role === 'staff' ? 'Staff code' : 'School code'}
+                  placeholderTextColor={colors.text3}
+                  value={schoolCode}
+                  onChangeText={t => setSchoolCode(t.toUpperCase())}
+                  autoCapitalize="characters"
+                  autoCorrect={false}
+                  secureTextEntry={role === 'staff'}
+                />
+                <Text style={s.hint}>
+                  {role === 'staff'
+                    ? 'Ask your school administrator for the staff code.'
+                    : 'Your school gives this out — ask a teacher if you do not have it.'}
+                </Text>
+              </View>
             )}
 
             {needsGrade && (
               <View style={{ marginBottom: 20 }}>
-                <Text style={s.fieldLabel}>כיתה</Text>
+                <Text style={s.fieldLabel}>Grade level</Text>
                 <TouchableOpacity style={s.gradePicker} onPress={() => setGradePickerOpen(true)}>
-                  <Text style={[s.gradePickerTxt, !grade && { color: colors.text3 }]}>
-                    {grade ? 'כיתה ' + grade : 'בחר/י כיתה'}
+                  <Text style={[s.gradePickerTxt, !gradeLevel && { color: colors.text3 }]}>
+                    {GRADE_LEVELS.find(g => g.value === gradeLevel)?.label || 'Select your grade'}
                   </Text>
                   <Text style={s.gradePickerArrow}>▾</Text>
                 </TouchableOpacity>
                 <Modal visible={gradePickerOpen} transparent animationType="fade" onRequestClose={() => setGradePickerOpen(false)}>
                   <TouchableOpacity style={s.gradeModalOverlay} activeOpacity={1} onPress={() => setGradePickerOpen(false)}>
                     <View style={s.gradeModalSheet}>
-                      <Text style={s.gradeModalTitle}>בחר/י כיתה</Text>
+                      <Text style={s.gradeModalTitle}>SELECT YOUR GRADE</Text>
                       <ScrollView>
-                        {GRADES.map(g => {
-                          const active = grade === g;
+                        {GRADE_LEVELS.map(g => {
+                          const active = gradeLevel === g.value;
                           return (
                             <TouchableOpacity
-                              key={g}
+                              key={g.value}
                               style={[s.gradeOption, active && s.gradeOptionActive]}
-                              onPress={() => { setGrade(g); setGradePickerOpen(false); }}
+                              onPress={() => { setGradeLevel(g.value); setGradePickerOpen(false); }}
                             >
-                              <Text style={[s.gradeOptionTxt, active && s.gradeOptionTxtActive]}>כיתה {g}</Text>
+                              <Text style={[s.gradeOptionTxt, active && s.gradeOptionTxtActive]}>{g.label}</Text>
                               {active && <Text style={s.gradeOptionCheck}>✓</Text>}
                             </TouchableOpacity>
                           );
@@ -348,48 +310,17 @@ export default function LoginScreen() {
               </View>
             )}
 
-            {needsClass && (
-              <View style={{ marginBottom: 12 }}>
-                <Text style={s.fieldLabel}>בית ספר</Text>
-                {schools === null && <ActivityIndicator color={colors.primary} style={{ marginVertical: 10 }} />}
-                {schools !== null && schools.length === 0 && (
-                  <Text style={s.hint}>אין עדיין בתי ספר פעילים במערכת — יש לפנות לרכז/ת התוכנית</Text>
-                )}
-                {(schools || []).map(sc => {
-                  const active = schoolId === sc.id;
-                  return (
-                    <TouchableOpacity key={sc.id} style={[s.classRow, active && s.classRowActive]} onPress={() => selectSchool(sc)}>
-                      <Text style={[s.classRowTxt, active && { color: colors.primary }]}>{sc.name}</Text>
-                      {!!sc.city && <Text style={s.classRowSub}>{sc.city}</Text>}
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            )}
-
-            {needsClass && !!schoolId && (
-              <View style={{ marginBottom: 12 }}>
-                <Text style={s.fieldLabel}>כיתה</Text>
-                {classes === null && <ActivityIndicator color={colors.primary} style={{ marginVertical: 10 }} />}
-                {classes !== null && classes.length === 0 && (
-                  <Text style={s.hint}>אין עדיין כיתות פעילות בבית הספר הזה — יש לפנות למורה/רכזת כדי שיפתחו כיתה</Text>
-                )}
-                {(classes || []).map(c => {
-                  const active = classId === c.id;
-                  return (
-                    <TouchableOpacity key={c.id} style={[s.classRow, active && s.classRowActive]} onPress={() => selectClass(c)}>
-                      <Text style={[s.classRowTxt, active && { color: colors.primary }]}>{c.name}</Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
+            {isRegistering && role === 'mentor' && (
+              <Text style={s.hint}>
+                Peer mentor accounts are reviewed by your school before they go live.
+              </Text>
             )}
 
             <TouchableOpacity style={s.rememberRow} onPress={() => setRememberMe(p => !p)}>
               <View style={[s.checkbox, rememberMe && s.checkboxActive]}>
                 {rememberMe && <Text style={{ color: 'white', fontSize: 12, fontWeight: '900' }}>✓</Text>}
               </View>
-              <Text style={s.rememberTxt}>זכור אותי</Text>
+              <Text style={s.rememberTxt}>Remember me</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={[s.mainBtn, role === 'mentor' && s.mainBtnMentor, role === 'staff' && s.mainBtnStaff]} onPress={handleAuth} disabled={loading}>

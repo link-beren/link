@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, SafeAreaView, Alert } from 'r
 import { getAuth, signOut } from 'firebase/auth';
 import { colors, radius, font } from '../theme';
 
-export default function MentorPendingScreen({ mentorStatus, className }) {
+export default function MentorPendingScreen({ mentorStatus, homeroomName }) {
   const rejected = mentorStatus === 'rejected';
 
   function handleSignOut() {
@@ -20,8 +20,8 @@ export default function MentorPendingScreen({ mentorStatus, className }) {
         <Text style={s.title}>{rejected ? 'הבקשה נדחתה' : 'ממתין לאישור'}</Text>
         <Text style={s.desc}>
           {rejected
-            ? `הבקשה שלך להצטרף לכיתה${className ? ` "${className}"` : ''} כמתנדב/ת נדחתה על ידי המורה. אפשר לפנות אליו/ה לבירור.`
-            : `הבקשה שלך להצטרף לכיתה${className ? ` "${className}"` : ''} כמתנדב/ת ממתינה לאישור המורה. ברגע שתאושר תוכל/י להתחיל לפעול כמתנדב/ת.`}
+            ? `הבקשה שלך להצטרף לכיתה${homeroomName ? ` "${homeroomName}"` : ''} כמתנדב/ת נדחתה על ידי המורה. אפשר לפנות אליו/ה לבירור.`
+            : `הבקשה שלך להצטרף לכיתה${homeroomName ? ` "${homeroomName}"` : ''} כמתנדב/ת ממתינה לאישור המורה. ברגע שתאושר תוכל/י להתחיל לפעול כמתנדב/ת.`}
         </Text>
         <TouchableOpacity style={s.signOutBtn} onPress={handleSignOut}>
           <Text style={s.signOutTxt}>התנתקות</Text>

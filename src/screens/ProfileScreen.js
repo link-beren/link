@@ -110,7 +110,7 @@ export default function ProfileScreen({ navigation }) {
         <Text style={s.hint}>הקש/י על התמונה כדי להחליף</Text>
 
         {!!profile.role && <Text style={s.rolePill}>{roleLabels[profile.role] || profile.role}</Text>}
-        {!!profile.className && <Text style={s.classTxt}>🏫 {profile.className}</Text>}
+        {!!profile.homeroomName && <Text style={s.classTxt}>🏫 {profile.homeroomName}</Text>}
 
         <View style={s.card}>
           <Text style={s.fieldLabel}>כינוי</Text>

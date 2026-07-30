@@ -1,26 +1,12 @@
 import { createUserWithEmailAndPassword, sendPasswordResetEmail, signInWithEmailAndPassword } from 'firebase/auth';
-import { collection, doc, onSnapshot, orderBy, query, setDoc, where } from 'firebase/firestore';
 import { httpsCallable } from 'firebase/functions';
-import { FormEvent, useEffect, useMemo, useState } from 'react';
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
+import { FormEvent, useState } from 'react';
+import { Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../auth/useAuth';
 import type { SignupRole } from '../auth/types';
-import { auth, db, functions } from '../lib/firebase';
+import { auth, functions } from '../lib/firebase';
+import { GRADE_LEVELS } from '../config/market';
 import { Button, Card } from '../components/ui';
-
-type ClassOption = {
-  id: string;
-  name: string;
-};
-
-type SchoolOption = {
-  id: string;
-  name: string;
-  city?: string;
-};
-
-// שכבות הגיל של תלמידים — זהות לרשימה שבאפליקציית המובייל
-const GRADES = ['א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט', 'י', 'יא', 'יב'];
 
 type LocationState = {
   from?: {
@@ -31,9 +17,13 @@ type LocationState = {
 const savedEmailKey = 'link_web_saved_email';
 
 function getRoleLabel(role: SignupRole) {
-  if (role === 'student') return 'תלמיד/ה';
-  if (role === 'mentor') return 'מתנדב/ת';
-  return 'צוות בית ספר';
+  if (role === 'student') return 'Student';
+  if (role === 'mentor') return 'Peer mentor';
+  return 'School staff';
+}
+
+function getCodeLabel(role: SignupRole) {
+  return role === 'staff' ? 'Staff code' : 'School code';
 }
 
 export function LoginPage() {
@@ -46,80 +36,14 @@ export function LoginPage() {
   const [email, setEmail] = useState(() => localStorage.getItem(savedEmailKey) || '');
   const [password, setPassword] = useState('');
   const [nickname, setNickname] = useState('');
-  const [staffCode, setStaffCode] = useState('');
-  const [classId, setClassId] = useState('');
-  const [classes, setClasses] = useState<ClassOption[]>([]);
-  const [schoolId, setSchoolId] = useState('');
-  const [schools, setSchools] = useState<SchoolOption[]>([]);
-  const [grade, setGrade] = useState('');
+  // One field for every role. There is no school picker any more: the school
+  // list is not publicly readable in the US product, and a picker would let
+  // anyone enumerate every district on the platform. The code names the school.
+  const [schoolCode, setSchoolCode] = useState('');
+  const [gradeLevel, setGradeLevel] = useState('');
   const [rememberMe, setRememberMe] = useState(() => !!localStorage.getItem(savedEmailKey));
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  // רשימת בתי הספר הפעילים — נדרשת בטופס ההרשמה לפני אימות, ולכן schools
-  // פתוח לקריאה. הקוד של כל בית ספר יושב בתת-אוסף פרטי ולא נחשף כאן.
-  useEffect(() => {
-    const schoolsQuery = query(
-      collection(db, 'schools'),
-      where('active', '==', true),
-      orderBy('name'),
-    );
-
-    return onSnapshot(
-      schoolsQuery,
-      (snapshot) => {
-        setSchools(
-          snapshot.docs.map((schoolDoc) => ({
-            id: schoolDoc.id,
-            name:
-              typeof schoolDoc.data().name === 'string'
-                ? schoolDoc.data().name
-                : schoolDoc.id,
-            city:
-              typeof schoolDoc.data().city === 'string'
-                ? schoolDoc.data().city
-                : undefined,
-          })),
-        );
-      },
-      () => setSchools([]),
-    );
-  }, []);
-
-  // הכיתות נטענות רק אחרי בחירת בית ספר, ומסוננות אליו
-  useEffect(() => {
-    if (!schoolId) {
-      setClasses([]);
-      return;
-    }
-
-    const classesQuery = query(
-      collection(db, 'classes'),
-      where('schoolId', '==', schoolId),
-      orderBy('name'),
-    );
-
-    return onSnapshot(
-      classesQuery,
-      (snapshot) => {
-        setClasses(
-          snapshot.docs.map((classDoc) => ({
-            id: classDoc.id,
-            name:
-              typeof classDoc.data().name === 'string'
-                ? classDoc.data().name
-                : classDoc.id,
-          })),
-        );
-      },
-      () => setClasses([]),
-    );
-  }, [schoolId]);
-
-  const selectedClass = useMemo(
-    () => classes.find((classOption) => classOption.id === classId),
-    [classId, classes],
-  );
 
   if (status === 'authenticated') {
     if (locationState?.from?.pathname) {
@@ -143,39 +67,24 @@ export function LoginPage() {
     setError(null);
 
     if (!email.trim() || !password) {
-      setError('אנא מלא/י אימייל וסיסמה.');
+      setError('Please enter your email and password.');
       return;
     }
 
-    if (mode === 'register' && (role === 'student' || role === 'mentor')) {
-      if (!nickname.trim()) {
-        setError('אנא בחר/י כינוי.');
+    if (mode === 'register') {
+      if ((role === 'student' || role === 'mentor') && !nickname.trim()) {
+        setError('Please choose a display name.');
+        return;
+      }
+      if ((role === 'student' || role === 'mentor') && !gradeLevel) {
+        setError('Please select your grade level.');
+        return;
+      }
+      if (!schoolCode.trim()) {
+        setError(`Please enter your ${getCodeLabel(role).toLowerCase()}.`);
         return;
       }
     }
-
-    if (mode === 'register' && role === 'student' && !grade) {
-      setError('אנא בחר/י כיתה.');
-      return;
-    }
-
-    if (mode === 'register' && role === 'mentor') {
-      if (!schoolId) {
-        setError('אנא בחר/י בית ספר.');
-        return;
-      }
-      if (!selectedClass) {
-        setError('אנא בחר/י כיתה.');
-        return;
-      }
-    }
-
-    if (mode === 'register' && role === 'staff' && !staffCode.trim()) {
-      setError('אנא הכנס/י קוד צוות.');
-      return;
-    }
-    // אין יותר קוד קבוע בלקוח — לכל בית ספר קוד משלו, שמאומת בשרת
-    // (registerStaffWithCode) כדי שלא ניתן יהיה לחלץ אותו מקוד הצד-לקוח.
 
     setLoading(true);
 
@@ -188,52 +97,36 @@ export function LoginPage() {
           email.trim(),
           password,
         );
-        const resolvedNickname = nickname.trim() || email.split('@')[0];
 
-        if (role === 'staff') {
-          // מסמך הצוות נוצר בשרת: הקוד מאומת מול schoolCodes ומשויך לבית הספר
-          // הנכון. יצירת staff מהלקוח חסומה בחוקים, אחרת אפשר היה לזייף schoolId.
-          try {
-            await httpsCallable(functions, 'usRegisterStaffWithCode')({
-              code: staffCode.trim(),
-              nickname: resolvedNickname,
-            });
-            // הפונקציה מציבה claim schoolId. בלי רענון מפורש הטוקן שבידינו
-            // עדיין בלי ה-claim, וכל שאילתה מוגבלת-בית-ספר תיפול על הרשאות.
-            await userCredential.user.getIdToken(true);
-          } catch (codeError) {
-            // הקוד שגוי — מוחקים את חשבון ה-Auth שנוצר עכשיו, אחרת יישאר חשבון
-            // בלי מסמך משתמש שגם חוסם הרשמה חוזרת עם אותו אימייל
-            try {
-              await userCredential.user.delete();
-            } catch {
-              /* ignore */
-            }
-            setError(
-              codeError instanceof Error && codeError.message
-                ? codeError.message
-                : 'קוד הצוות שגוי.',
-            );
-            setLoading(false);
-            return;
-          }
-        } else {
-          await setDoc(doc(db, 'users', userCredential.user.uid), {
-            email: email.trim(),
-            nickname: resolvedNickname,
+        // Every role is created server-side. The rules deny client writes to
+        // /users entirely: a client that could write its own document could
+        // type any schoolId into DevTools and land inside another school.
+        try {
+          await httpsCallable(functions, 'usRegisterWithSchoolCode')({
+            code: schoolCode.trim(),
             role,
-            createdAt: new Date().toISOString(),
-            // תלמיד גלובלי — שכבת גיל בלבד, בלי שיוך לבית ספר או לכיתה
-            ...(role === 'student' ? { grade, className: `כיתה ${grade}` } : {}),
-            ...(role === 'mentor'
-              ? {
-                  schoolId,
-                  classId: selectedClass?.id,
-                  className: selectedClass?.name,
-                  mentorStatus: 'pending',
-                }
-              : {}),
+            nickname: nickname.trim() || email.split('@')[0],
+            gradeLevel,
           });
+          // The function sets the schoolId claim. Without an explicit refresh
+          // our token still lacks it and every school-scoped query fails.
+          await userCredential.user.getIdToken(true);
+        } catch (codeError) {
+          // Registration failed, so delete the Auth account we just created.
+          // Left behind it would block signing up again with the same email
+          // while granting access to nothing.
+          try {
+            await userCredential.user.delete();
+          } catch {
+            /* ignore */
+          }
+          setError(
+            codeError instanceof Error && codeError.message
+              ? codeError.message
+              : 'That code is not valid.',
+          );
+          setLoading(false);
+          return;
         }
       }
 
@@ -253,11 +146,11 @@ export function LoginPage() {
           ? caughtError.code
           : '';
 
-      if (code === 'auth/email-already-in-use') setError('האימייל כבר בשימוש.');
-      else if (code === 'auth/invalid-email') setError('האימייל לא תקין.');
-      else if (code === 'auth/weak-password') setError('הסיסמה חלשה מדי.');
-      else if (code === 'auth/invalid-credential') setError('פרטי ההתחברות שגויים.');
-      else setError('לא ניתן להשלים את הפעולה כרגע.');
+      if (code === 'auth/email-already-in-use') setError('That email is already in use.');
+      else if (code === 'auth/invalid-email') setError('That email address is not valid.');
+      else if (code === 'auth/weak-password') setError('That password is too weak.');
+      else if (code === 'auth/invalid-credential') setError('Incorrect email or password.');
+      else setError('Something went wrong. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -265,12 +158,12 @@ export function LoginPage() {
 
   async function handleForgotPassword() {
     if (!email.trim()) {
-      setError('אנא הזן/י אימייל לפני איפוס סיסמה.');
+      setError('Please enter your email address first.');
       return;
     }
 
     await sendPasswordResetEmail(auth, email.trim());
-    setError('אם קיים חשבון עם האימייל הזה, נשלח אליו קישור איפוס.');
+    setError('If an account exists for that email, a reset link is on its way.');
   }
 
   return (
@@ -278,10 +171,10 @@ export function LoginPage() {
       <Card className="login-card">
         <div className="login-head">
           <div className="brand login-brand">Link</div>
-          <h1>{mode === 'login' ? 'כניסה לחשבון' : 'יצירת חשבון'}</h1>
+          <h1>{mode === 'login' ? 'Sign in' : 'Create your account'}</h1>
         </div>
 
-        <div className="role-selector" aria-label="בחירת תפקיד">
+        <div className="role-selector" aria-label="Select your role">
           {(['student', 'mentor', 'staff'] as SignupRole[]).map((roleOption) => (
             <button
               key={roleOption}
@@ -296,7 +189,7 @@ export function LoginPage() {
 
         <form className="auth-form" onSubmit={(event) => void handleSubmit(event)}>
           <label>
-            אימייל
+            Email
             <input
               type="email"
               value={email}
@@ -305,7 +198,7 @@ export function LoginPage() {
             />
           </label>
           <label>
-            סיסמה
+            Password
             <input
               type="password"
               value={password}
@@ -315,84 +208,54 @@ export function LoginPage() {
           </label>
 
           {mode === 'register' && (role === 'student' || role === 'mentor') && (
-            <label>
-              כינוי
-              <input
-                type="text"
-                value={nickname}
-                maxLength={20}
-                onChange={(event) => setNickname(event.target.value)}
-              />
-            </label>
-          )}
-
-          {mode === 'register' && role === 'student' && (
-            <label>
-              כיתה
-              <select value={grade} onChange={(event) => setGrade(event.target.value)}>
-                <option value="">בחר/י כיתה</option>
-                {GRADES.map((gradeOption) => (
-                  <option key={gradeOption} value={gradeOption}>
-                    כיתה {gradeOption}
-                  </option>
-                ))}
-              </select>
-            </label>
-          )}
-
-          {mode === 'register' && role === 'mentor' && (
             <>
               <label>
-                בית ספר
+                Display name
+                <input
+                  type="text"
+                  value={nickname}
+                  maxLength={20}
+                  onChange={(event) => setNickname(event.target.value)}
+                />
+              </label>
+              <label>
+                Grade level
                 <select
-                  value={schoolId}
-                  onChange={(event) => {
-                    setSchoolId(event.target.value);
-                    // החלפת בית ספר מאפסת כיתה שנבחרה קודם, אחרת היא תישאר
-                    // כיתה של בית ספר אחר
-                    setClassId('');
-                  }}
+                  value={gradeLevel}
+                  onChange={(event) => setGradeLevel(event.target.value)}
                 >
-                  <option value="">בחר/י בית ספר</option>
-                  {schools.map((schoolOption) => (
-                    <option key={schoolOption.id} value={schoolOption.id}>
-                      {schoolOption.city
-                        ? `${schoolOption.name} — ${schoolOption.city}`
-                        : schoolOption.name}
+                  <option value="">Select your grade</option>
+                  {GRADE_LEVELS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
                     </option>
                   ))}
                 </select>
               </label>
-              {!!schoolId && (
-                <label>
-                  כיתה
-                  <select value={classId} onChange={(event) => setClassId(event.target.value)}>
-                    <option value="">בחר/י כיתה</option>
-                    {classes.map((classOption) => (
-                      <option key={classOption.id} value={classOption.id}>
-                        {classOption.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              )}
-              {!!schoolId && classes.length === 0 && (
-                <div className="form-message">
-                  אין עדיין כיתות פעילות בבית הספר הזה — יש לפנות למורה/רכזת.
-                </div>
-              )}
             </>
           )}
 
-          {mode === 'register' && role === 'staff' && (
+          {mode === 'register' && (
             <label>
-              קוד צוות
+              {getCodeLabel(role)}
               <input
-                type="password"
-                value={staffCode}
-                onChange={(event) => setStaffCode(event.target.value)}
+                type={role === 'staff' ? 'password' : 'text'}
+                value={schoolCode}
+                autoCapitalize="characters"
+                onChange={(event) => setSchoolCode(event.target.value.toUpperCase())}
               />
+              <span className="field-hint">
+                {role === 'staff'
+                  ? 'Ask your school administrator for the staff code.'
+                  : 'Your school gives this out — ask a teacher if you do not have it.'}
+              </span>
             </label>
+          )}
+
+          {mode === 'register' && role === 'mentor' && (
+            <div className="form-message">
+              Peer mentor accounts are reviewed by your school before they go live.
+            </div>
           )}
 
           <label className="remember-row">
@@ -401,27 +264,27 @@ export function LoginPage() {
               checked={rememberMe}
               onChange={(event) => setRememberMe(event.target.checked)}
             />
-            זכור את האימייל במכשיר הזה
+            Remember my email on this device
           </label>
 
           {error && <div className="form-message">{error}</div>}
 
           <Button type="submit" disabled={loading}>
-            {loading ? 'טוען...' : mode === 'login' ? 'כניסה' : 'הרשמה'}
+            {loading ? 'Working…' : mode === 'login' ? 'Sign in' : 'Create account'}
           </Button>
         </form>
 
         <div className="auth-footer">
           {mode === 'login' && (
             <button type="button" onClick={() => void handleForgotPassword()}>
-              שכחתי סיסמה
+              Forgot password
             </button>
           )}
           <button
             type="button"
             onClick={() => setMode(mode === 'login' ? 'register' : 'login')}
           >
-            {mode === 'login' ? 'אין לך חשבון? הרשמה' : 'יש לך חשבון? כניסה'}
+            {mode === 'login' ? 'Need an account? Sign up' : 'Already have an account? Sign in'}
           </button>
         </div>
 

@@ -29,9 +29,16 @@ console, while still landing US minors' data on US soil.
 The cost of the decision, stated plainly: the Authentication user pool is shared
 between markets, so one email address cannot register in both. And because both
 codebases deploy Cloud Functions into the same project, every function exported
-from this repository is prefixed `us` — `usRegisterStaffWithCode`,
+from this repository is prefixed `us` — `usRegisterWithSchoolCode`,
 `usSendChatNotification`, and so on. Function names must be unique per project;
 dropping a prefix would overwrite the Israeli function of the same name.
+
+The same trap applies to anything that opens Firestore by hand.
+`getFirestore()` with no argument returns the **default** database, which is
+the Israeli data. Server code in this repository must pass the id — see
+`DB_ID` in `functions/index.js` and `functions/scripts/grant-admin.js`. Firestore
+v2 triggers have the same problem and need an explicit `database: DB_ID` in
+their options, or they attach silently to the wrong country.
 
 ## What differs from the Israeli app
 
@@ -51,6 +58,50 @@ Education (מנד"ה) sign-in has been removed; it has no American equivalent.
 Parental consent is a known and deliberate gap. It has been deferred, not
 solved. Before this ships to a real district it will need either a school-consent
 attestation flow or in-app verifiable parental consent under COPPA.
+
+## How someone joins a school
+
+There is no school picker. The `schools` collection is not publicly readable —
+if it were, anyone could open the sign-up screen and enumerate every district on
+the platform — so the registration code is what names the school.
+
+Each school has **two** codes, not one:
+
+    schools/{schoolId}/private/code   { staffCode, studentCode }
+    schoolCodes/{CODE}                { schoolId, audience }
+
+`audience` is `'staff'` or `'student'`, and it decides which roles the code can
+create: a staff code makes staff, a student code makes students and pending peer
+mentors. A single shared code would mean every student who registers is also
+holding the string that grants staff access — and staff can read every
+student's distress alerts. The student code is meant to be read aloud in a
+classroom; the staff code is not.
+
+Registration goes through `usRegisterWithSchoolCode`, and only through it. The
+rules deny client writes to `/users` outright (`allow create: if false`),
+because a client that could write its own document could type any `schoolId`
+into DevTools and land inside another school. The function also sets the
+`schoolId` custom claim, so the client must call `getIdToken(true)` afterwards
+or every school-scoped query will fail on a stale token.
+
+Either code can be regenerated — by a system admin via
+`usAdminRotateSchoolCode`, or by the school's own staff via
+`usStaffRotateSchoolCode`. Both take an `audience` argument and rotate one code
+at a time. Already-registered users are unaffected; their school is recorded on
+their user document, not re-derived from the code.
+
+## Grade levels and homerooms
+
+The Israeli app groups students by כיתה — a fixed cohort that moves through the
+day together. American schools only work that way through grade 5. From grade 6
+students take subjects with different teachers and have no fixed cohort, so the
+grouping axis here is the **grade level** (K through 12, in
+`src/config/market.js`), which every student has.
+
+The `classes` collection survives, but it now means an *optional homeroom or
+advisory group*, and the denormalized fields on a user document are
+`homeroomId` / `homeroomName` rather than `classId` / `className`. The security
+rules name those fields explicitly, so a write using the old names is rejected.
 
 ## Deploy commands
 

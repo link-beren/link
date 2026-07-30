@@ -36,7 +36,7 @@ export function MentorPendingPage() {
         <dl className="pending-details" aria-label="פרטי בקשה">
           <div>
             <dt>כיתה</dt>
-            <dd>{profile?.className || 'לא שויכה כיתה'}</dd>
+            <dd>{profile?.homeroomName || 'לא שויכה כיתה'}</dd>
           </div>
           <div>
             <dt>כינוי</dt>

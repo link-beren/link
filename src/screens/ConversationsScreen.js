@@ -11,6 +11,7 @@ import {
 import { db } from '../firebase';
 import { colors, radius, font } from '../theme';
 import Avatar from '../components/Avatar';
+import useMySchoolId from '../hooks/useMySchoolId';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
@@ -41,6 +42,7 @@ function getPartnerUid(chat, myUid) {
 export default function ConversationsScreen({ navigation }) {
   const auth = getAuth();
   const user = auth.currentUser;
+  const schoolId = useMySchoolId();
 
   const [dmChats, setDmChats] = useState([]);
   const [myGroups, setMyGroups] = useState([]);
@@ -81,14 +83,19 @@ export default function ConversationsScreen({ navigation }) {
     return unsub;
   }, [user]);
 
-  // ── חיפוש משתמשים ───────────────────────────────────────────────────────
+  // ── User search ─────────────────────────────────────────────────────────
   async function handleSearch(text) {
     setSearch(text);
-    if (text.trim().length < 2) { setSearchResults([]); return; }
+    // The school filter is not a nicety. The rules refuse to return a user
+    // from another school, and Firestore fails a query as a whole if any
+    // single result is unreadable, so without it this search errors out
+    // rather than over-reaching.
+    if (!schoolId || text.trim().length < 2) { setSearchResults([]); return; }
     setSearching(true);
     try {
       const q = query(
         collection(db, 'users'),
+        where('schoolId', '==', schoolId),
         where('nickname', '>=', text),
         where('nickname', '<=', text + '')
       );

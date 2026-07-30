@@ -10,7 +10,7 @@ type ProfileData = {
   nickname?: string;
   email?: string;
   role?: string;
-  className?: string;
+  homeroomName?: string;
   avatarUrl?: string;
 };
 
@@ -31,7 +31,7 @@ export function ProfilePage() {
         nickname: typeof data.nickname === 'string' ? data.nickname : '',
         email: typeof data.email === 'string' ? data.email : user.email || '',
         role: typeof data.role === 'string' ? data.role : '',
-        className: typeof data.className === 'string' ? data.className : '',
+        homeroomName: typeof data.homeroomName === 'string' ? data.homeroomName : '',
         avatarUrl: typeof data.avatarUrl === 'string' ? data.avatarUrl : '',
       };
       setProfile(nextProfile);
@@ -85,7 +85,7 @@ export function ProfilePage() {
         <Avatar name={profile?.nickname || profile?.email} src={profile?.avatarUrl} />
         <h1>הפרופיל שלי</h1>
         <p>{profile?.email || user?.email}</p>
-        {!!profile?.className && <p>{profile.className}</p>}
+        {!!profile?.homeroomName && <p>{profile.homeroomName}</p>}
 
         <form className="auth-form" onSubmit={(event) => void saveNickname(event)}>
           <label>

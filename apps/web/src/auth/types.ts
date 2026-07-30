@@ -16,9 +16,9 @@ export type UserProfile = {
   // כדי שמתנדב יוכל לשוחח עם תלמיד מכל בית ספר.
   schoolId?: string;
   schoolName?: string;
-  classId?: string;
-  className?: string;
-  // שכבת גיל של תלמיד (א–יב) — מחליפה את classId עבור תלמידים
+  homeroomId?: string;
+  homeroomName?: string;
+  // שכבת גיל של תלמיד (א–יב) — מחליפה את homeroomId עבור תלמידים
   grade?: string;
 };
 
