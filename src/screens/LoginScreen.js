@@ -5,8 +5,8 @@ import {
 } from 'react-native';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from 'firebase/auth';
 import { doc, getDoc } from 'firebase/firestore';
-import { getFunctions, httpsCallable } from 'firebase/functions';
-import app, { db } from '../firebase';
+import { httpsCallable } from 'firebase/functions';
+import { db, functions } from '../firebase';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SecureStore from 'expo-secure-store';
 import { colors, radius, font } from '../theme';
@@ -113,7 +113,7 @@ export default function LoginScreen() {
         // /users outright: a client that could write its own document could
         // put any schoolId in it and land inside another school.
         try {
-          await httpsCallable(getFunctions(app, 'us-central1'), 'usRegisterWithSchoolCode')({
+          await httpsCallable(functions, 'usRegisterWithSchoolCode')({
             code: schoolCode.trim(),
             role,
             nickname: resolvedNickname,

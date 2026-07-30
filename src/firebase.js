@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
 import { getAuth } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import { getFunctions } from 'firebase/functions';
 import { getStorage } from 'firebase/storage';
 
 const firebaseConfig = {
@@ -21,5 +22,10 @@ export const FUNCTIONS_REGION = 'us-central1';
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app, US_DATABASE_ID);
+// The region is not optional either: the US functions are deployed to
+// us-central1, and the default (us-central1 for the SDK, but resolved per
+// project) is not guaranteed to match. Exported once so no screen has to
+// remember it.
+export const functions = getFunctions(app, FUNCTIONS_REGION);
 export const storage = getStorage(app);
 export default app;

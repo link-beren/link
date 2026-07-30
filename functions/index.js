@@ -982,6 +982,53 @@ exports.usStaffRotateSchoolCode = onCall({ region: REGION }, async request => {
 });
 
 /**
+ * Apply to become a peer mentor at your own school.
+ *
+ * Most students will not decide to volunteer on the day they sign up, so
+ * picking "Peer mentor" at registration cannot be the only route in. This is
+ * the later route: a student flips their own role to mentor and lands in the
+ * pending queue their school's staff already works through.
+ *
+ * It has to be a callable rather than a client write. The rules make `role`
+ * immutable from the client — role decides what a user can read, and a client
+ * that could edit it could make itself staff and read every distress alert in
+ * the school. Nothing here is taken from the request: the school, the role and
+ * the resulting status all come from the caller's existing user document.
+ *
+ * data: {}
+ */
+exports.usApplyToMentor = onCall({ region: REGION }, async request => {
+  if (!request.auth) throw new HttpsError('unauthenticated', 'You must be signed in.');
+  const uid = request.auth.uid;
+
+  const userRef = db.collection('users').doc(uid);
+  const snap = await userRef.get();
+  if (!snap.exists) throw new HttpsError('not-found', 'No profile for this account.');
+
+  const data = snap.data() || {};
+  if (data.role === 'mentor') {
+    throw new HttpsError('already-exists', 'You have already applied.');
+  }
+  if (data.role !== 'student') {
+    throw new HttpsError('failed-precondition', 'Only students can apply to be peer mentors.');
+  }
+  if (!data.schoolId) {
+    throw new HttpsError('failed-precondition', 'Your account is not attached to a school.');
+  }
+
+  // Pending, never approved. Staff approval is the only gate on who appears in
+  // the volunteer list, and these are minors mentoring minors.
+  await userRef.update({
+    role: 'mentor',
+    mentorStatus: 'pending',
+    mentorAppliedAt: FieldValue.serverTimestamp(),
+  });
+
+  console.log(`student ${uid} applied to mentor at school ${data.schoolId}`);
+  return { ok: true, mentorStatus: 'pending' };
+});
+
+/**
  * הסרת איש צוות מבית הספר.
  *
  * מכוון: החשבון עצמו לא נמחק, רק השיוך. מחיקת משתמש נשארת
