@@ -1,15 +1,15 @@
 /**
  * sessionTracker.js
- * עוקב אחר זמן שהמנטור פעיל באפליקציה (foreground).
- * כותב סשנים ל-Firestore ומגיש סיכום יומי אוטומטי לאישור המורה.
+ * Tracks the time a peer mentor is active in the app (foreground).
+ * Writes sessions to Firestore and submits an automatic daily summary for the teacher's approval.
  *
  * Schema:
  *   mentorSessions/{id}: { uid, schoolId, homeroomId, date, startAt, endAt?, minutes? }
  *   mentoringHours/{id}:  { mentorUid, mentorName, schoolId, homeroomId, date, minutes, type:'auto', status:'pending', createdAt }
  *
- * schoolId חייב לשבת על כל מסמך — חוקי האבטחה דורשים
- * request.resource.data.schoolId == mySchoolId() ביצירה,
- * והצוות שואל where('schoolId','==',...) בקריאה.
+ * schoolId must sit on every document — the security rules require
+ * request.resource.data.schoolId == mySchoolId() on create,
+ * and school staff query where('schoolId','==',...) on read.
  */
 
 import { AppState } from 'react-native';
@@ -35,7 +35,7 @@ function _dateStr(offsetDays = 0) {
 }
 
 async function _beginSession() {
-  // בלי schoolId החוקים דוחים את הכתיבה — אין טעם לנסות
+  // Without schoolId the rules reject the write — no point in trying
   if (!_uid || !_schoolId) return;
   _sessionStart = Date.now();
   try {
@@ -48,7 +48,7 @@ async function _beginSession() {
     });
     _sessionDocId = ref.id;
   } catch {
-    // אם הכתיבה נכשלה — נמשיך לספור מקומית
+    // If the write failed — we keep counting locally
   }
 }
 
@@ -71,7 +71,7 @@ async function _submitYesterday() {
   if (!_uid || !_schoolId) return;
   const yesterday = _dateStr(-1);
 
-  // בדוק אם כבר הוגש
+  // Check whether it was already submitted
   try {
     const existSnap = await getDocs(query(
       collection(db, 'mentoringHours'),
@@ -81,7 +81,7 @@ async function _submitYesterday() {
     ));
     if (!existSnap.empty) return;
 
-    // חבר את כל הסשנים של אתמול
+    // Add up all of yesterday's sessions
     const sessSnap = await getDocs(query(
       collection(db, 'mentorSessions'),
       where('uid', '==', _uid),
@@ -93,7 +93,7 @@ async function _submitYesterday() {
 
     await addDoc(collection(db, 'mentoringHours'), {
       mentorUid: _uid,
-      mentorName: _mentorName || 'מתנדב/ת',
+      mentorName: _mentorName || 'Peer Mentor',
       schoolId: _schoolId,
       homeroomId: _classId || null,
       date: yesterday,
@@ -108,30 +108,30 @@ async function _submitYesterday() {
 // ─── public API ───────────────────────────────────────────────────────────────
 
 /**
- * מפעיל מעקב עבור מנטור מאושר.
+ * Starts tracking for an approved peer mentor.
  * @param {{ uid: string, schoolId: string|null, homeroomId: string|null, mentorName: string }} opts
  */
 export function startTracking({ uid, schoolId, homeroomId, mentorName }) {
-  // בלי schoolId אין למה לעקוב — כל כתיבה תידחה
+  // Without schoolId there is nothing to track — every write would be rejected
   if (!schoolId) { stopTracking(); return; }
-  if (_uid === uid && _schoolId === schoolId) return; // כבר עוקבים
-  stopTracking();           // נקה מצב קודם
+  if (_uid === uid && _schoolId === schoolId) return; // already tracking
+  stopTracking();           // clear the previous state
 
   _uid = uid;
   _schoolId = schoolId;
   _classId = homeroomId || null;
-  _mentorName = mentorName || 'מתנדב/ת';
+  _mentorName = mentorName || 'Peer Mentor';
 
-  // הגש שעות אתמול אם לא הוגשו
+  // Submit yesterday's hours if they were not submitted
   _submitYesterday();
 
-  // פתח סשן עכשיו
+  // Open a session now
   _beginSession();
 
-  // האזן לשינויי מצב האפליקציה
+  // Listen for app state changes
   _appStateSub = AppState.addEventListener('change', (state) => {
     if (state === 'active') {
-      // חזרה לחזית — סגור סשן ישן ופתח חדש (תאריך אולי השתנה)
+      // Back in the foreground — close the old session and open a new one (the date may have changed)
       _closeSession().then(() => _beginSession());
     } else if (state === 'background' || state === 'inactive') {
       _closeSession();
@@ -140,7 +140,7 @@ export function startTracking({ uid, schoolId, homeroomId, mentorName }) {
 }
 
 /**
- * עוצר מעקב (בלוגאאוט או שינוי תפקיד).
+ * Stops tracking (on logout or a role change).
  */
 export function stopTracking() {
   _closeSession();
@@ -155,15 +155,15 @@ export function stopTracking() {
 }
 
 /**
- * מחזיר את זמן תחילת הסשן הפעיל (Date.now() ערך) או null.
- * משמש ל-MentorHomeScreen לחישוב מונה חי.
+ * Returns the start time of the active session (a Date.now() value) or null.
+ * Used by MentorHomeScreen to compute a live counter.
  */
 export function getActiveSessionStart() {
   return _sessionStart;
 }
 
 /**
- * מחזיר את ה-uid שעוקבים אחריו כרגע.
+ * Returns the uid that is currently being tracked.
  */
 export function getTrackedUid() {
   return _uid;

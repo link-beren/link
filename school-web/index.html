@@ -1,11 +1,11 @@
 <!DOCTYPE html>
-<html lang="he" dir="rtl">
+<html lang="en" dir="ltr">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>לינק — פורטל מנהל בית ספר</title>
+  <title>Link — School Admin Portal</title>
 
-  <!-- Firebase compat v10 — אותה גרסה כמו admin-web, בלי שלב build -->
+  <!-- Firebase compat v10 — same version as admin-web, with no build step -->
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -95,7 +95,7 @@
 
     /* ── TABLE ── */
     .tbl { width: 100%; border-collapse: collapse; }
-    .tbl th { padding: 12px 16px; font-size: 11px; font-weight: 700; color: var(--text3); letter-spacing: 1px; text-transform: uppercase; background: var(--card2); text-align: right; border-bottom: 1px solid var(--border); white-space: nowrap; }
+    .tbl th { padding: 12px 16px; font-size: 11px; font-weight: 700; color: var(--text3); letter-spacing: 1px; text-transform: uppercase; background: var(--card2); text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap; }
     .tbl td { padding: 13px 16px; font-size: 13px; border-bottom: 1px solid var(--border); vertical-align: middle; }
     .tbl tr:last-child td { border-bottom: none; }
     .tbl tr:hover td { background: var(--card2); }
@@ -136,12 +136,12 @@
     /* ── CODE BOX ── */
     .code-box { display: inline-flex; align-items: center; gap: 8px; background: var(--card2); border: 1px dashed var(--border); border-radius: var(--radius-sm); padding: 8px 14px; font-family: 'SF Mono', Menlo, monospace; font-size: 18px; font-weight: 800; letter-spacing: 3px; direction: ltr; }
 
-    /* ── BARS (תובנות) ── */
+    /* ── BARS (insights) ── */
     .bar-row { display: flex; align-items: center; gap: 12px; padding: 8px 16px; }
     .bar-row .nm { width: 150px; font-size: 12px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .bar-track { flex: 1; height: 10px; background: var(--card2); border-radius: 99px; overflow: hidden; }
     .bar-fill { height: 100%; background: var(--primary); border-radius: 99px; transition: width .3s; }
-    .bar-row .vl { width: 70px; text-align: left; font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; }
+    .bar-row .vl { width: 70px; text-align: right; font-size: 12px; font-weight: 800; font-variant-numeric: tabular-nums; }
 
     .spark { display: flex; align-items: flex-end; gap: 3px; height: 90px; padding: 16px; }
     .spark-col { flex: 1; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; gap: 4px; min-width: 0; }
@@ -150,7 +150,7 @@
 
     /* ── LOADER / NOTICE ── */
     .loader { text-align: center; padding: 40px; color: var(--text3); font-size: 13px; }
-    .spinner { display: inline-block; width: 22px; height: 22px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin .7s linear infinite; margin-left: 8px; vertical-align: middle; }
+    .spinner { display: inline-block; width: 22px; height: 22px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin .7s linear infinite; margin-right: 8px; vertical-align: middle; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .notice { border-radius: var(--radius-sm); padding: 12px 16px; font-size: 12.5px; line-height: 1.7; margin-bottom: 16px; }
     .notice-warn { background: var(--amber-soft); border: 1px solid var(--amber); color: var(--amber); }
@@ -187,18 +187,18 @@
 <!-- ══ LOGIN ══ -->
 <div id="login-screen">
   <div class="login-card">
-    <div class="login-logo">לינק</div>
+    <div class="login-logo">Link</div>
     <div class="login-sub">School Portal</div>
-    <div class="login-title">כניסת צוות בית הספר</div>
+    <div class="login-title">School staff sign-in</div>
     <div class="field">
-      <label>אימייל</label>
-      <input type="email" id="login-email" placeholder="staff@school.co.il" autocomplete="username" />
+      <label>Email</label>
+      <input type="email" id="login-email" placeholder="staff@school.edu" autocomplete="username" />
     </div>
     <div class="field">
-      <label>סיסמה</label>
+      <label>Password</label>
       <input type="password" id="login-pass" placeholder="••••••••" autocomplete="current-password" />
     </div>
-    <button class="btn-primary" id="login-btn" onclick="doLogin()">כניסה</button>
+    <button class="btn-primary" id="login-btn" onclick="doLogin()">Sign in</button>
     <div class="error-msg" id="login-error"></div>
   </div>
 </div>
@@ -206,26 +206,26 @@
 <!-- ══ APP ══ -->
 <div id="app">
   <div class="topbar">
-    <span class="topbar-logo">לינק</span>
+    <span class="topbar-logo">Link</span>
     <span class="topbar-school" id="topbar-school">—</span>
-    <span class="topbar-title">פורטל ניהול בית ספר</span>
+    <span class="topbar-title">School management portal</span>
     <span class="topbar-user" id="topbar-user"></span>
-    <button class="btn-signout" onclick="doSignOut()">התנתקות</button>
+    <button class="btn-signout" onclick="doSignOut()">Sign out</button>
   </div>
 
   <div class="tabs">
-    <div class="tab active" data-tab="overview" onclick="switchTab('overview')">📊 סקירה</div>
-    <div class="tab" data-tab="alerts"   onclick="switchTab('alerts')">🆘 התראות מצוקה</div>
-    <div class="tab" data-tab="mentors"  onclick="switchTab('mentors')">🤝 מתנדבים</div>
-    <div class="tab" data-tab="hours"    onclick="switchTab('hours')">⏱ שעות</div>
-    <div class="tab" data-tab="classes"  onclick="switchTab('classes')">📚 כיתות</div>
-    <div class="tab" data-tab="staff"    onclick="switchTab('staff')">👩‍🏫 צוות</div>
-    <div class="tab" data-tab="insights" onclick="switchTab('insights')">📈 תובנות</div>
-    <div class="tab" data-tab="reports"  onclick="switchTab('reports')">📄 דוחות</div>
+    <div class="tab active" data-tab="overview" onclick="switchTab('overview')">📊 Overview</div>
+    <div class="tab" data-tab="alerts"   onclick="switchTab('alerts')">🆘 Distress alerts</div>
+    <div class="tab" data-tab="mentors"  onclick="switchTab('mentors')">🤝 Peer mentors</div>
+    <div class="tab" data-tab="hours"    onclick="switchTab('hours')">⏱ Hours</div>
+    <div class="tab" data-tab="classes"  onclick="switchTab('classes')">📚 Homerooms</div>
+    <div class="tab" data-tab="staff"    onclick="switchTab('staff')">👩‍🏫 Staff</div>
+    <div class="tab" data-tab="insights" onclick="switchTab('insights')">📈 Insights</div>
+    <div class="tab" data-tab="reports"  onclick="switchTab('reports')">📄 Reports</div>
   </div>
 
   <div class="content">
-    <div class="panel active" id="panel-overview"><div class="loader"><span class="spinner"></span> טוען נתונים...</div></div>
+    <div class="panel active" id="panel-overview"><div class="loader"><span class="spinner"></span> Loading data...</div></div>
     <div class="panel" id="panel-alerts"></div>
     <div class="panel" id="panel-mentors"></div>
     <div class="panel" id="panel-hours"></div>
@@ -242,8 +242,8 @@
     <h3 id="modal-title"></h3>
     <p id="modal-body"></p>
     <div class="modal-actions">
-      <button class="btn-sm btn-ghost" onclick="closeModal()">ביטול</button>
-      <button class="btn-sm btn-danger" id="modal-confirm-btn">אישור</button>
+      <button class="btn-sm btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn-sm btn-danger" id="modal-confirm-btn">Confirm</button>
     </div>
   </div>
 </div>
@@ -253,11 +253,11 @@
   <div class="modal">
     <h3 id="prompt-title"></h3>
     <p id="prompt-body" style="margin-bottom:14px"></p>
-    <label class="modal-lbl" id="prompt-label">ערך</label>
+    <label class="modal-lbl" id="prompt-label">Value</label>
     <input class="modal-input" id="prompt-input" />
     <div class="modal-actions" style="margin-top:20px">
-      <button class="btn-sm btn-ghost" onclick="closePrompt()">ביטול</button>
-      <button class="btn-sm btn-success" id="prompt-ok">שמירה</button>
+      <button class="btn-sm btn-ghost" onclick="closePrompt()">Cancel</button>
+      <button class="btn-sm btn-success" id="prompt-ok">Save</button>
     </div>
   </div>
 </div>
@@ -266,12 +266,13 @@
 
 <script>
 // ══════════════════════════════════════════════════════════════════
-//  פורטל מנהל בית ספר
+//  School admin portal
 //
-//  כל שאילתה כאן מסוננת לבית ספר אחד — זה שעל מסמך המשתמש המחובר.
-//  הסינון אינו קוסמטי: חוקי Firestore דוחים כל קריאה שלא נושאת את
-//  התנאי, ולכן הסרת where מכאן שוברת את המסך במקום לחשוף נתונים.
-//  ראה firestore.rules — isStaffOf().
+//  Every query here is filtered to a single school — the one on the signed-in
+//  user's document. The filter is not cosmetic: Firestore rules reject any read
+//  that does not carry the condition, so removing a where clause here breaks
+//  the screen instead of exposing data.
+//  See firestore.rules — isStaffOf().
 // ══════════════════════════════════════════════════════════════════
 
 const firebaseConfig = {
@@ -294,14 +295,14 @@ const fns  = firebase.app().functions('us-central1');
 // ── State ────────────────────────────────────────────────────────
 let me          = null;   // { uid, email, nickname }
 let mySchoolId  = null;
-let mySchool    = null;   // מסמך schools/{id}
+let mySchool    = null;   // schools/{id} document
 // Two codes, not one. The student code is read aloud in a classroom; the staff
 // code grants the ability to read every student's distress alerts. A single
 // shared code would hand the second to everyone who needs the first.
 // Each is fetched only when its "reveal" button is pressed.
 let schoolCodes = { student: null, staff: null };
 
-let users     = [];   // כל המשתמשים של בית הספר (צוות + מתנדבים)
+let users     = [];   // all of the school's users (staff + peer mentors)
 let classes   = [];
 let hours     = [];
 let alerts    = [];
@@ -317,22 +318,23 @@ let loaded = { users: false, classes: false, hours: false, alerts: false, sessio
 auth.onAuthStateChanged(async user => {
   if (!user) { showLogin(); return; }
   try {
-    // ההרשאה נקבעת ממסמך המשתמש ולא מ-claim: schoolId נכתב כ-claim רק
-    // ב-registerStaffWithCode / adminMoveUserSchool, וטוקן ישן עלול
-    // לשאת ערך ריק או ישן. מסמך המשתמש הוא מקור האמת, ובדיוק אותו
-    // ערך הכללים קוראים כשה-claim חסר.
+    // Permission is decided from the user document and not from a claim:
+    // schoolId is written as a claim only in registerStaffWithCode /
+    // adminMoveUserSchool, and an old token may carry an empty or stale value.
+    // The user document is the source of truth, and it is exactly the value the
+    // rules read when the claim is missing.
     const snap = await db.collection('users').doc(user.uid).get();
     const data = snap.exists ? snap.data() : null;
 
     if (!data || data.role !== 'staff') {
       setLoginError(data && data.role === 'admin'
-        ? 'זהו פורטל בית הספר. לחשבון אדמין מערכת יש לוח בקרה נפרד.'
-        : 'החשבון אינו מוגדר כאיש צוות בית ספר.');
+        ? 'This is the school portal. A system admin account has a separate dashboard.'
+        : 'This account is not set up as school staff.');
       await auth.signOut();
       return;
     }
     if (!data.schoolId) {
-      setLoginError('החשבון אינו משויך לבית ספר. יש לפנות לאדמין המערכת לשיוך.');
+      setLoginError('This account is not assigned to a school. Contact a system admin to get assigned.');
       await auth.signOut();
       return;
     }
@@ -341,9 +343,9 @@ auth.onAuthStateChanged(async user => {
     mySchoolId = data.schoolId;
 
     const schoolSnap = await db.collection('schools').doc(mySchoolId).get();
-    mySchool = schoolSnap.exists ? { id: schoolSnap.id, ...schoolSnap.data() } : { id: mySchoolId, name: data.schoolName || 'בית הספר שלי' };
+    mySchool = schoolSnap.exists ? { id: schoolSnap.id, ...schoolSnap.data() } : { id: mySchoolId, name: data.schoolName || 'My school' };
 
-    document.getElementById('topbar-school').textContent = mySchool.name || 'בית הספר שלי';
+    document.getElementById('topbar-school').textContent = mySchool.name || 'My school';
     document.getElementById('topbar-user').textContent = me.nickname;
     showApp();
     loadAll();

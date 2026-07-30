@@ -32,7 +32,7 @@ export const themeTokens = {
     xl: '20px',
   },
   fonts: {
-    base: 'Heebo, Arial, sans-serif',
+    base: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
   },
 } as const;
 

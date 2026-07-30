@@ -333,7 +333,7 @@ export default function StaffPortalScreen({ navigation }) {
           placeholderTextColor={colors.text3}
           value={search}
           onChangeText={setSearch}
-          textAlign="right"
+          textAlign="left"
         />
       </View>
       <FlatList
@@ -446,7 +446,7 @@ export default function StaffPortalScreen({ navigation }) {
               placeholderTextColor={colors.text3}
               value={newClassName}
               onChangeText={setNewClassName}
-              textAlign="right"
+              textAlign="left"
             />
             <TouchableOpacity style={s.addClassBtn} onPress={createClass} disabled={creatingClass}>
               {creatingClass ? <ActivityIndicator color="white" /> : <Text style={s.addClassBtnTxt}>הוסף</Text>}

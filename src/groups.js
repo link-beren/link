@@ -35,7 +35,7 @@ export async function createGroup({ name, description, category, icon, accentCol
     joinedAt: serverTimestamp(),
   });
   batch.set(doc(db, 'users', uid), { joinedGroupIds: arrayUnion(groupRef.id) }, { merge: true });
-  // צ'אט הקבוצה — נוצר עם רשימת המשתתפים כדי שיהיה מסונכרן עם ההאזנות הקיימות (App.js)
+  // The group chat — created with the participant list so it stays in sync with the existing listeners (App.js)
   batch.set(doc(db, 'chats', groupRef.id), {
     isGroup: true,
     type: 'group',

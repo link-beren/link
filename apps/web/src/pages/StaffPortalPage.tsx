@@ -19,9 +19,10 @@ import { useAuth } from '../auth/useAuth';
 import { Button, Card, Chip, DataTable, Modal, SearchBox } from '../components/ui';
 import { db } from '../lib/firebase';
 
-// טאב "תלמידים" הוסר: תלמיד אינו משויך לבית ספר (מתנדב מכל בית ספר יכול
-// ללוות אותו), ולכן לצוות אין רשימת תלמידים משמעותית להציג. הגישה לתלמיד
-// היא דרך התראת מצוקה שנותבה לבית הספר.
+// The "Students" tab was removed: a student isn't tied to a school (a peer
+// mentor from any school can mentor them), so staff have no meaningful list of
+// students to show. Staff reach a student through a distress alert that was
+// routed to the school.
 type StaffTab = 'dashboard' | 'alerts' | 'hours' | 'classes' | 'mentors' | 'reports' | 'requests';
 
 type UserRow = {
@@ -69,9 +70,10 @@ type ClassRow = {
 };
 
 /**
- * מאזין לשאילתה. מקבל `null` כשעדיין אין schoolId (הפרופיל בטעינה) —
- * חשוב, כי שאילתה בלי המסננים תיפול על חוקי האבטחה: Firestore דוחה
- * שאילתה שלמה אם ולו מסמך אחד בתוצאה חורג מהחוק, ולא מסננת בשקט.
+ * Subscribes to a query. Accepts `null` while there is still no schoolId (the
+ * profile is loading) — this matters, because a query without the filters would
+ * fail the security rules: Firestore rejects an entire query if even one
+ * document in the result violates a rule, rather than silently filtering it out.
  */
 function useQueryRows<T>(builtQuery: Query | null) {
   const [rows, setRows] = useState<T[]>([]);
@@ -103,11 +105,12 @@ function useQueryRows<T>(builtQuery: Query | null) {
 
 function formatDate(value?: { toDate?: () => Date }) {
   const date = value?.toDate?.();
-  return date ? date.toLocaleString('he-IL') : '';
+  return date ? date.toLocaleString('en-US') : '';
 }
 
-// שני מסלולי היצירה (DistressScreen במובייל ו-DistressPage בווב) כותבים 'uid',
-// ולכן הוא הקנוני. studentUid/userId נשארים כנפילה למסמכים היסטוריים.
+// Both creation paths (DistressScreen on mobile and DistressPage on web) write
+// 'uid', so that is the canonical field. studentUid/userId stay as fallbacks for
+// historical documents.
 function getAlertStudentUid(alert: DistressAlert) {
   return alert.uid || alert.studentUid || alert.userId || '';
 }
@@ -130,8 +133,8 @@ export function StaffPortalPage() {
 
   const schoolId = profile?.schoolId || '';
 
-  // כל שאילתה מוגבלת לבית הספר של איש הצוות. המסננים כאן אינם קוסמטיים —
-  // הם תנאי מוקדם לכך שהחוקים יאשרו את הקריאה בכלל.
+  // Every query is scoped to the staff member's own school. These filters aren't
+  // cosmetic — they're a precondition for the rules to allow the read at all.
   const mentorsQuery = useMemo(
     () =>
       schoolId

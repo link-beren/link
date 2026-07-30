@@ -1,12 +1,12 @@
 {
   "name": "Link",
   "short_name": "Link",
-  "description": "פלטפורמת ליווי, חונכות וקהילה לבית הספר",
+  "description": "A mentoring, tutoring, and community platform for your school",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",
-  "dir": "rtl",
-  "lang": "he",
+  "dir": "ltr",
+  "lang": "en",
   "background_color": "#0f172a",
   "theme_color": "#2563eb",
   "icons": [

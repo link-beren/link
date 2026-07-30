@@ -10,10 +10,10 @@ import { db } from '../firebase';
 import { colors, radius, font } from '../theme';
 
 const options = [
-  { id: 1, icon: '👊', text: 'אני חושש/ת שיהיה מקרה אלימות בקרוב' },
-  { id: 2, icon: '🫥', text: 'אני חושב/ת שעושים עליי חרם' },
-  { id: 3, icon: '📱', text: 'מישהו שולח לי הודעות מאיימות ברשת' },
-  { id: 4, icon: '🆘', text: 'אני בסכנה פיזית ממשית — צריך/ה עזרה עכשיו' },
+  { id: 1, icon: '👊', text: "I'm worried a fight is about to happen" },
+  { id: 2, icon: '🫥', text: "I think people are leaving me out on purpose" },
+  { id: 3, icon: '📱', text: 'Someone is sending me threatening messages online' },
+  { id: 4, icon: '🆘', text: "I'm in real physical danger — I need help now" },
 ];
 
 export default function DistressScreen({ navigation }) {
@@ -31,14 +31,14 @@ export default function DistressScreen({ navigation }) {
       const opt = options.find(o => o.id === selected);
       await addDoc(collection(db, 'distressAlerts'), {
         uid: user?.uid || null,
-        nickname: nickname || user?.email || 'לא ידוע',
+        nickname: nickname || user?.email || 'Unknown',
         reasonId: opt.id,
         reasonText: opt.text,
         status: 'open',
         createdAt: serverTimestamp(),
       });
 
-      // פתח גישת אדמין לכל השיחות של המשתמש
+      // Open admin access to all of this user's chats
       if (user?.uid) {
         const chatsSnap = await getDocs(
           query(collection(db, 'chats'), where('participants', 'array-contains', user.uid))
@@ -54,7 +54,7 @@ export default function DistressScreen({ navigation }) {
 
       setSent(true);
     } catch (e) {
-      Alert.alert('שגיאה', 'לא הצלחנו לשלוח את הקריאה. נסה/י שוב או התקשר/י ל-1201 (ער"ן).');
+      Alert.alert('Something went wrong', 'We could not send your alert. Please try again, or call or text 988 (Suicide & Crisis Lifeline).');
     } finally {
       setSending(false);
     }
@@ -65,17 +65,17 @@ export default function DistressScreen({ navigation }) {
       <SafeAreaView style={s.safe}>
         <View style={s.sentWrap}>
           <Text style={s.sentIcon}>✅</Text>
-          <Text style={s.sentTitle}>הקריאה נשלחה!</Text>
+          <Text style={s.sentTitle}>Your alert was sent!</Text>
           <Text style={s.sentMsg}>
-            הצוות קיבל את ההודעה שלך ויצור איתך קשר בהקדם.{'\n'}אתה לא לבד.
+            Your school staff got your message and will reach out to you soon.{'\n'}You are not alone.
           </Text>
           <View style={s.badges}>
-            <View style={s.badge}><Text style={s.badgeTxt}>🔔 הרכזת התרעה</Text></View>
-            <View style={s.badge}><Text style={s.badgeTxt}>🤝 מתנדב/ת זמינים עכשיו</Text></View>
-            <View style={s.badge}><Text style={s.badgeTxt}>📞 ניתן להתקשר: 1201 (ער"ן)</Text></View>
+            <View style={s.badge}><Text style={s.badgeTxt}>🔔 School staff notified</Text></View>
+            <View style={s.badge}><Text style={s.badgeTxt}>🤝 Peer mentors available now</Text></View>
+            <View style={s.badge}><Text style={s.badgeTxt}>📞 You can call or text 988</Text></View>
           </View>
           <TouchableOpacity style={s.closeBtn} onPress={() => { setSent(false); setSelected(null); navigation?.goBack?.(); }}>
-            <Text style={s.closeBtnTxt}>סגור</Text>
+            <Text style={s.closeBtnTxt}>Close</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -87,8 +87,8 @@ export default function DistressScreen({ navigation }) {
       <View style={s.header}>
         <Text style={s.headerIcon}>🆘</Text>
         <View>
-          <Text style={s.headerTitle}>כפתור מצוקה</Text>
-          <Text style={s.headerSub}>אנחנו כאן בשבילך — תמיד</Text>
+          <Text style={s.headerTitle}>Get help now</Text>
+          <Text style={s.headerSub}>We're here for you — always</Text>
         </View>
         {navigation?.canGoBack?.() && (
           <TouchableOpacity onPress={() => navigation.goBack()} style={s.xBtn}>
@@ -99,7 +99,7 @@ export default function DistressScreen({ navigation }) {
 
       <ScrollView style={s.body} contentContainerStyle={{ gap: 10 }}>
         <Text style={s.info}>
-          לחיצה תשלח התראה מיידית לצוות בית-הספר.{'\n'}תוך דקות מישהו יצור איתך קשר.
+          Tapping this sends an immediate alert to your school staff.{'\n'}Someone will reach out to you within minutes.
         </Text>
 
         {options.map(opt => (
@@ -120,11 +120,11 @@ export default function DistressScreen({ navigation }) {
         >
           {sending
             ? <ActivityIndicator color="white" />
-            : <Text style={s.sendBtnTxt}>שלח קריאת עזרה</Text>}
+            : <Text style={s.sendBtnTxt}>Send help request</Text>}
         </TouchableOpacity>
 
         <TouchableOpacity style={s.cancelBtn} onPress={() => navigation?.goBack?.()}>
-          <Text style={s.cancelTxt}>ביטול — אני בסדר</Text>
+          <Text style={s.cancelTxt}>Cancel — I'm okay</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -154,7 +154,7 @@ const s = StyleSheet.create({
   },
   optSel: { backgroundColor: colors.redSoft, borderColor: colors.red },
   optIcon: { fontSize: 22 },
-  optTxt: { flex: 1, fontSize: 13, fontWeight: font.bold, color: colors.text2, textAlign: 'right' },
+  optTxt: { flex: 1, fontSize: 13, fontWeight: font.bold, color: colors.text2, textAlign: 'left' },
   optTxtSel: { color: colors.red },
 
   sendBtn: {

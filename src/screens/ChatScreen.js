@@ -274,7 +274,7 @@ export default function ChatScreen({ route, navigation }) {
               placeholderTextColor={colors.text3}
               onSubmitEditing={send}
               returnKeyType="send"
-              textAlign="right"
+              textAlign="left"
               multiline={false}
             />
           </View>
@@ -309,7 +309,7 @@ const s = StyleSheet.create({
     paddingVertical: 9, paddingHorizontal: 13,
   },
   myName: { fontSize: 11, fontWeight: font.bold, color: 'rgba(255,255,255,0.6)', marginBottom: 3 },
-  myText: { fontSize: 14, color: '#fff', lineHeight: 20, textAlign: 'right' },
+  myText: { fontSize: 14, color: '#fff', lineHeight: 20, textAlign: 'left' },
   theirWrap: {
     alignSelf: 'flex-start', maxWidth: '78%',
     backgroundColor: colors.card,
@@ -336,7 +336,7 @@ const s = StyleSheet.create({
     borderWidth: 1, borderColor: colors.border,
     paddingHorizontal: 14, paddingVertical: 10,
   },
-  input: { color: colors.text, fontSize: 14, textAlign: 'right' },
+  input: { color: colors.text, fontSize: 14, textAlign: 'left' },
   sendBtn: {
     width: 38, height: 38, borderRadius: radius.full,
     backgroundColor: colors.primary,

@@ -197,7 +197,7 @@ const s = StyleSheet.create({
   card: { width: '100%', backgroundColor: 'transparent', borderRadius: 0, padding: 0, borderWidth: 0, marginTop: 28 },
   fieldLabel: { fontSize: 10, fontWeight: font.black, color: colors.text3, marginBottom: 10, textAlign: 'left', letterSpacing: 1.5, textTransform: 'uppercase' },
   input: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: radius.sm, paddingVertical: 12, paddingHorizontal: 14, fontSize: 15, color: colors.text, textAlign: 'left' },
-  charCount: { fontSize: 11, color: colors.text3, textAlign: 'right', marginTop: 6, marginBottom: 16 },
+  charCount: { fontSize: 11, color: colors.text3, textAlign: 'left', marginTop: 6, marginBottom: 16 },
   saveBtn: { backgroundColor: colors.primary, borderRadius: radius.full, padding: 15, alignItems: 'center', marginTop: 8 },
   saveBtnTxt: { color: 'white', fontSize: 15, fontWeight: font.black, letterSpacing: 0.5 },
   mentorBtn: { width: '100%', borderRadius: radius.full, padding: 15, alignItems: 'center', marginTop: 20, borderWidth: 1, borderColor: colors.primary, backgroundColor: colors.primarySoft },

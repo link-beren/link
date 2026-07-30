@@ -16,7 +16,7 @@ const messaging = firebase.messaging();
 messaging.onBackgroundMessage((payload) => {
   const title = payload.notification?.title || 'Link';
   const options = {
-    body: payload.notification?.body || 'התקבלה התראה חדשה',
+    body: payload.notification?.body || 'You have a new notification',
     icon: '/link-icon.svg',
     badge: '/link-icon.svg',
     data: payload.data || {},

@@ -5,17 +5,17 @@ import { app, db } from './firebase';
 export async function requestWebPushToken(uid: string) {
   const supported = await isSupported();
   if (!supported || !('Notification' in window) || !('serviceWorker' in navigator)) {
-    throw new Error('הדפדפן הזה לא תומך בהתראות Web Push.');
+    throw new Error('This browser does not support Web Push notifications.');
   }
 
   const vapidKey = import.meta.env.VITE_FIREBASE_VAPID_KEY as string | undefined;
   if (!vapidKey) {
-    throw new Error('חסר VITE_FIREBASE_VAPID_KEY. צריך ליצור Web Push certificate ב-Firebase Console ולהוסיף אותו לקובץ env.');
+    throw new Error('VITE_FIREBASE_VAPID_KEY is missing. Create a Web Push certificate in the Firebase Console and add it to the env file.');
   }
 
   const permission = await Notification.requestPermission();
   if (permission !== 'granted') {
-    throw new Error('לא ניתנה הרשאה להתראות.');
+    throw new Error('Notification permission was not granted.');
   }
 
   const registration = await navigator.serviceWorker.ready;
@@ -26,7 +26,7 @@ export async function requestWebPushToken(uid: string) {
   });
 
   if (!token) {
-    throw new Error('Firebase לא החזיר טוקן התראות.');
+    throw new Error('Firebase did not return a notification token.');
   }
 
   await setDoc(
@@ -47,6 +47,6 @@ export async function subscribeForegroundMessages(onNotification: (message: stri
   if (!(await isSupported())) return () => {};
   const messaging = getMessaging(app);
   return onMessage(messaging, (payload) => {
-    onNotification(payload.notification?.title || payload.notification?.body || 'התקבלה התראה חדשה');
+    onNotification(payload.notification?.title || payload.notification?.body || 'You have a new notification');
   });
 }

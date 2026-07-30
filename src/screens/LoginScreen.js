@@ -232,9 +232,9 @@ export default function LoginScreen() {
           <View style={s.card}>
             <Text style={s.title}>{mode === 'login' ? 'כניסה לחשבון' : 'יצירת חשבון'}</Text>
 
-            <TextInput style={s.input} placeholder="אימייל" placeholderTextColor={colors.text3} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" textAlign="right" />
+            <TextInput style={s.input} placeholder="אימייל" placeholderTextColor={colors.text3} value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" textAlign="left" />
 
-            <TextInput style={s.input} placeholder="סיסמה" placeholderTextColor={colors.text3} value={password} onChangeText={setPassword} secureTextEntry textAlign="right" />
+            <TextInput style={s.input} placeholder="סיסמה" placeholderTextColor={colors.text3} value={password} onChangeText={setPassword} secureTextEntry textAlign="left" />
 
             {mode === 'login' && (
               <TouchableOpacity style={s.forgotBtn} onPress={handleForgotPassword} disabled={loading}>
@@ -376,26 +376,26 @@ const s = StyleSheet.create({
   rolePillStaff: { backgroundColor: colors.purpleSoft },
   rolePillTxt: { fontSize: 12, fontWeight: font.bold, color: colors.primary },
   card: { backgroundColor: 'transparent' },
-  title: { fontSize: 24, fontWeight: font.black, color: colors.text, textAlign: 'right', marginBottom: 32 },
-  input: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: radius.sm, paddingVertical: 12, paddingHorizontal: 14, fontSize: 15, color: colors.text, marginBottom: 16, textAlign: 'right' },
+  title: { fontSize: 24, fontWeight: font.black, color: colors.text, textAlign: 'left', marginBottom: 32 },
+  input: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: radius.sm, paddingVertical: 12, paddingHorizontal: 14, fontSize: 15, color: colors.text, marginBottom: 16, textAlign: 'left' },
   charCount: { fontSize: 11, color: colors.text3, textAlign: 'left', marginTop: -16, marginBottom: 16 },
   forgotBtn: { alignSelf: 'flex-end', marginTop: -14, marginBottom: 20 },
   forgotTxt: { fontSize: 12, color: colors.primary, fontWeight: font.bold },
-  fieldLabel: { fontSize: 10, fontWeight: font.black, color: colors.text3, marginBottom: 10, textAlign: 'right', letterSpacing: 1.5, textTransform: 'uppercase' },
+  fieldLabel: { fontSize: 10, fontWeight: font.black, color: colors.text3, marginBottom: 10, textAlign: 'left', letterSpacing: 1.5, textTransform: 'uppercase' },
   hint: { fontSize: 12, color: colors.text2, fontWeight: font.semi, textAlign: 'center', marginVertical: 8 },
   classRow: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: radius.sm, padding: 13, marginBottom: 8 },
   classRowActive: { borderLeftColor: colors.primary, backgroundColor: colors.primarySoft },
-  classRowTxt: { fontSize: 14, fontWeight: font.bold, color: colors.text, textAlign: 'right' },
-  classRowSub: { fontSize: 11, color: colors.text3, textAlign: 'right', marginTop: 3 },
+  classRowTxt: { fontSize: 14, fontWeight: font.bold, color: colors.text, textAlign: 'left' },
+  classRowSub: { fontSize: 11, color: colors.text3, textAlign: 'left', marginTop: 3 },
   gradePicker: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: radius.sm, paddingVertical: 12, paddingHorizontal: 14 },
-  gradePickerTxt: { fontSize: 15, color: colors.text, textAlign: 'right' },
+  gradePickerTxt: { fontSize: 15, color: colors.text, textAlign: 'left' },
   gradePickerArrow: { fontSize: 14, color: colors.text3 },
   gradeModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', paddingHorizontal: 32 },
   gradeModalSheet: { backgroundColor: colors.card2, borderRadius: radius.md, maxHeight: 400, overflow: 'hidden' },
   gradeModalTitle: { fontSize: 13, fontWeight: font.black, color: colors.text3, textAlign: 'center', paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: colors.border, letterSpacing: 1.5 },
   gradeOption: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingVertical: 14, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: colors.border },
   gradeOptionActive: { backgroundColor: colors.primarySoft },
-  gradeOptionTxt: { fontSize: 15, fontWeight: font.semi, color: colors.text, textAlign: 'right' },
+  gradeOptionTxt: { fontSize: 15, fontWeight: font.semi, color: colors.text, textAlign: 'left' },
   gradeOptionTxtActive: { color: colors.primary, fontWeight: font.bold },
   gradeOptionCheck: { fontSize: 14, color: colors.primary, fontWeight: font.black },
   rememberRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 24 },

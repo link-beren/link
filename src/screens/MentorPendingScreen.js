@@ -7,9 +7,9 @@ export default function MentorPendingScreen({ mentorStatus, homeroomName }) {
   const rejected = mentorStatus === 'rejected';
 
   function handleSignOut() {
-    Alert.alert('התנתקות', 'האם אתה בטוח?', [
-      { text: 'ביטול', style: 'cancel' },
-      { text: 'התנתק', style: 'destructive', onPress: () => signOut(getAuth()) },
+    Alert.alert('Sign out', 'Are you sure?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Sign out', style: 'destructive', onPress: () => signOut(getAuth()) },
     ]);
   }
 
@@ -17,14 +17,14 @@ export default function MentorPendingScreen({ mentorStatus, homeroomName }) {
     <SafeAreaView style={s.safe}>
       <View style={s.content}>
         <Text style={s.emoji}>{rejected ? '❌' : '⏳'}</Text>
-        <Text style={s.title}>{rejected ? 'הבקשה נדחתה' : 'ממתין לאישור'}</Text>
+        <Text style={s.title}>{rejected ? 'Application declined' : 'Waiting for approval'}</Text>
         <Text style={s.desc}>
           {rejected
-            ? `הבקשה שלך להצטרף לכיתה${homeroomName ? ` "${homeroomName}"` : ''} כמתנדב/ת נדחתה על ידי המורה. אפשר לפנות אליו/ה לבירור.`
-            : `הבקשה שלך להצטרף לכיתה${homeroomName ? ` "${homeroomName}"` : ''} כמתנדב/ת ממתינה לאישור המורה. ברגע שתאושר תוכל/י להתחיל לפעול כמתנדב/ת.`}
+            ? `Your request to join the homeroom${homeroomName ? ` "${homeroomName}"` : ''} as a peer mentor was declined by your teacher. You can reach out to them to find out more.`
+            : `Your request to join the homeroom${homeroomName ? ` "${homeroomName}"` : ''} as a peer mentor is waiting for your teacher's approval. As soon as it is approved you can start mentoring.`}
         </Text>
         <TouchableOpacity style={s.signOutBtn} onPress={handleSignOut}>
-          <Text style={s.signOutTxt}>התנתקות</Text>
+          <Text style={s.signOutTxt}>Sign out</Text>
         </TouchableOpacity>
       </View>
     </SafeAreaView>

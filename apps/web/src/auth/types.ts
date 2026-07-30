@@ -1,9 +1,11 @@
-// 'admin' הוא תפקיד אמיתי ב-Firestore (ומקבל custom claim), ולכן הוא חייב
-// להופיע בטיפוס — אחרת כל השוואה לתפקיד אדמין נראית לטייפסקריפט בלתי אפשרית.
+// 'admin' is a real role in Firestore (and gets a custom claim), so it has to
+// appear in the type — otherwise TypeScript sees any comparison against the
+// admin role as impossible.
 export type UserRole = 'student' | 'mentor' | 'staff' | 'admin';
 export type MentorStatus = 'pending' | 'approved' | 'rejected';
 
-// מה שניתן לבחור בטופס הרשמה — אדמין לא נרשם, הוא ממונה בשרת בלבד.
+// What can be picked on the signup form — an admin never signs up, the role is
+// assigned on the server only.
 export type SignupRole = Exclude<UserRole, 'admin'>;
 
 export type UserProfile = {
@@ -12,13 +14,13 @@ export type UserProfile = {
   nickname?: string;
   role?: UserRole;
   mentorStatus?: MentorStatus;
-  // שיוך לבית ספר — קיים ל-staff ול-mentor בלבד. תלמידים גלובליים בכוונה,
-  // כדי שמתנדב יוכל לשוחח עם תלמיד מכל בית ספר.
+  // School affiliation — exists for staff and mentors only. Students are global
+  // on purpose, so a peer mentor can chat with a student from any school.
   schoolId?: string;
   schoolName?: string;
   homeroomId?: string;
   homeroomName?: string;
-  // שכבת גיל של תלמיד (א–יב) — מחליפה את homeroomId עבור תלמידים
+  // A student's grade level (K–12) — replaces homeroomId for students
   grade?: string;
 };
 

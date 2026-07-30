@@ -241,7 +241,7 @@ export default function ConversationsScreen({ navigation }) {
             placeholderTextColor={colors.text3}
             value={search}
             onChangeText={handleSearch}
-            textAlign="right"
+            textAlign="left"
           />
           {search.length > 0 && (
             <TouchableOpacity onPress={clearSearch}>

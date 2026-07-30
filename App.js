@@ -24,7 +24,7 @@ import StaffPortalScreen from './src/screens/StaffPortalScreen';
 import MentorPendingScreen from './src/screens/MentorPendingScreen';
 import ProfileScreen from './src/screens/ProfileScreen';
 
-// האזורים שאדמין יכול להיכנס אליהם
+// The areas a system admin can enter
 const ADMIN_VIEW_ROLES = ['student', 'mentor', 'staff'];
 
 const Tab = createBottomTabNavigator();
@@ -95,13 +95,13 @@ function MentorConvStack() {
 function MentorTabs({ pendingCount }) {
   return (
     <Tab.Navigator screenOptions={{ headerShown: false, tabBarStyle: { backgroundColor: colors.card, borderTopColor: colors.border, height: 72, paddingBottom: 10 }, tabBarShowLabel: false }}>
-      <Tab.Screen name="MentorTab" component={MentorHomeStack} options={{ tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" label="בית" focused={focused} /> }} />
-      <Tab.Screen name="ConvTab" component={MentorConvStack} options={{ tabBarIcon: ({ focused }) => <TabIcon emoji="💬" label="שיחות" focused={focused} /> }} />
-      <Tab.Screen name="DiscoverTab" component={DiscoverScreen} options={{ tabBarIcon: ({ focused }) => <TabIcon emoji="🌐" label="גלה" focused={focused} /> }} />
+      <Tab.Screen name="MentorTab" component={MentorHomeStack} options={{ tabBarIcon: ({ focused }) => <TabIcon emoji="🏠" label="Home" focused={focused} /> }} />
+      <Tab.Screen name="ConvTab" component={MentorConvStack} options={{ tabBarIcon: ({ focused }) => <TabIcon emoji="💬" label="Chats" focused={focused} /> }} />
+      <Tab.Screen name="DiscoverTab" component={DiscoverScreen} options={{ tabBarIcon: ({ focused }) => <TabIcon emoji="🌐" label="Discover" focused={focused} /> }} />
       <Tab.Screen name="FriendsTab" component={FriendsStack} options={{
         tabBarIcon: ({ focused }) => (
           <View>
-            <TabIcon emoji="❤️" label="חברים" focused={focused} />
+            <TabIcon emoji="❤️" label="Friends" focused={focused} />
             {pendingCount > 0 && (
               <View style={{ position: 'absolute', top: -2, left: -2, backgroundColor: colors.red, borderRadius: 99, minWidth: 16, height: 16, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 }}>
                 <Text style={{ fontSize: 9, fontWeight: '900', color: 'white' }}>{pendingCount}</Text>
@@ -128,8 +128,8 @@ function MentoringStack() {
 function StudentTabs({ pendingCount }) {
   return (
     <Tab.Navigator screenOptions={{ headerShown: false, tabBarStyle: { backgroundColor: colors.card, borderTopColor: colors.border, height: 72, paddingBottom: 10 }, tabBarShowLabel: false }}>
-      <Tab.Screen name="ConvTab" component={ConvStack} options={{ tabBarIcon: ({ focused }) => <TabIcon emoji="💬" label="שיחות" focused={focused} /> }} />
-      <Tab.Screen name="DiscoverTab" component={DiscoverScreen} options={{ tabBarIcon: ({ focused }) => <TabIcon emoji="🌐" label="גלה" focused={focused} /> }} />
+      <Tab.Screen name="ConvTab" component={ConvStack} options={{ tabBarIcon: ({ focused }) => <TabIcon emoji="💬" label="Chats" focused={focused} /> }} />
+      <Tab.Screen name="DiscoverTab" component={DiscoverScreen} options={{ tabBarIcon: ({ focused }) => <TabIcon emoji="🌐" label="Discover" focused={focused} /> }} />
       <Tab.Screen name="DistressTab" component={DistressScreen} options={{
         tabBarIcon: ({ focused }) => (
           <View style={{ backgroundColor: colors.red, borderRadius: 30, width: 54, height: 54, alignItems: 'center', justifyContent: 'center', marginBottom: 10 }}>
@@ -140,7 +140,7 @@ function StudentTabs({ pendingCount }) {
       <Tab.Screen name="FriendsTab" component={FriendsStack} options={{
         tabBarIcon: ({ focused }) => (
           <View>
-            <TabIcon emoji="❤️" label="חברים" focused={focused} />
+            <TabIcon emoji="❤️" label="Friends" focused={focused} />
             {pendingCount > 0 && (
               <View style={{ position: 'absolute', top: -2, left: -2, backgroundColor: colors.red, borderRadius: 99, minWidth: 16, height: 16, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4 }}>
                 <Text style={{ fontSize: 9, fontWeight: '900', color: 'white' }}>{pendingCount}</Text>
@@ -149,15 +149,15 @@ function StudentTabs({ pendingCount }) {
           </View>
         ),
       }} />
-      <Tab.Screen name="MentoringTab" component={MentoringStack} options={{ tabBarIcon: ({ focused }) => <TabIcon emoji="🤝" label="מתנדבים" focused={focused} /> }} />
+      <Tab.Screen name="MentoringTab" component={MentoringStack} options={{ tabBarIcon: ({ focused }) => <TabIcon emoji="🤝" label="Mentors" focused={focused} /> }} />
     </Tab.Navigator>
   );
 }
 
 /**
- * שולח התראה מקומית על התראות מצוקה חדשות (פחות מ-5 שניות).
- * status מסונן כאן ולא בשאילתה, כדי להסתפק באינדקס
- * notifySchoolIds + createdAt הקיים.
+ * Sends a local notification for new distress alerts (less than 5 seconds old).
+ * status is filtered here rather than in the query, so that the existing
+ * notifySchoolIds + createdAt index is enough.
  */
 function notifyNewAlerts(snap) {
   snap.docChanges().forEach(change => {
@@ -168,8 +168,8 @@ function notifyNewAlerts(snap) {
     if (Date.now() - alertTime < 5000) {
       const { sendLocalNotification } = require('./src/notifications');
       sendLocalNotification(
-        alert.unrouted ? '🆘 מצוקה ללא שיוך בית ספר' : '🆘 התראת מצוקה חדשה',
-        `${alert.nickname || 'תלמיד/ה'}: ${alert.reasonText}`
+        alert.unrouted ? '🆘 Distress alert with no school' : '🆘 New distress alert',
+        `${alert.nickname || 'Student'}: ${alert.reasonText}`
       );
     }
   });
@@ -182,10 +182,10 @@ export default function App() {
   const [mentorStatus, setMentorStatus] = useState(null);
   const [homeroomName, setHomeroomName] = useState(null);
   const [homeroomId, setHomeroomId] = useState(null);
-  // בית הספר של המשתמש — צוות ומתנדבים בלבד. לתלמידים אין שיוך.
+  // The user's school — school staff and peer mentors only. Students have no school.
   const [schoolId, setSchoolId] = useState(null);
   const [pendingCount, setPendingCount] = useState(0);
-  // האזור שאדמין בחר במסך ההתחברות (student / mentor / staff)
+  // The area the system admin picked on the login screen (student / mentor / staff)
   const [adminViewRole, setAdminViewRole] = useState(null);
 
   useEffect(() => {
@@ -195,26 +195,26 @@ export default function App() {
       setUser(u);
       if (unsubRole) { unsubRole(); unsubRole = null; }
       if (u) {
-        // מאזין (לא getDoc חד-פעמי) — כדי לא לפספס את התפקיד אם ה-doc עוד לא נכתב בזמן ההרשמה
+        // A listener (not a one-off getDoc) — so we do not miss the role if the doc has not been written yet during sign-up
         unsubRole = onSnapshot(doc(db, 'users', u.uid), userDoc => {
-          // המסמך עוד לא קיים — הרשמה חדשה בתהליך, ממתינים
+          // The document does not exist yet — a new sign-up is in progress, so we wait
           if (!userDoc.exists()) return;
 
           const data = userDoc.data();
           const detectedRole = data?.role;
 
-          // role חסר — מסמך פגום, מנתקים
+          // role is missing — the document is corrupt, so we sign out
           if (!detectedRole) {
             signOut(getAuth()).catch(() => {});
             return;
           }
 
-          // role נקבע אך ורק מ-Firestore — אף פעם לא מ-UI
+          // role is decided solely by Firestore — never by the UI
           setRole(detectedRole);
 
-          // אדמין — טוענים את האזור שנבחר במסך ההתחברות.
-          // ברירת מחדל 'student' אם אין ערך שמור או שהערך לא תקין,
-          // אחרת נגיע למסך טעינה אינסופי בלי אף ענף ניווט תואם.
+          // System admin — load the area that was picked on the login screen.
+          // Default to 'student' if there is no saved value or the value is invalid,
+          // otherwise we end up on an endless loading screen with no matching navigation branch.
           if (detectedRole === 'admin') {
             AsyncStorage.getItem('admin_view_role')
               .then(saved => setAdminViewRole(ADMIN_VIEW_ROLES.includes(saved) ? saved : 'student'))
@@ -229,20 +229,20 @@ export default function App() {
           setSchoolId(data.schoolId || null);
           setLoading(false);
 
-          // מעקב שעות — רק למנטורים מאושרים המשויכים לבית ספר.
-          // בלי schoolId כללי האבטחה דוחים כל כתיבת שעות.
+          // Hour tracking — only for approved peer mentors who belong to a school.
+          // Without schoolId the security rules reject every hours write.
           if (detectedRole === 'mentor' && data.mentorStatus === 'approved' && data.schoolId) {
             startTracking({
               uid: u.uid,
               schoolId: data.schoolId,
               homeroomId: data.homeroomId || null,
-              mentorName: data.nickname || u.email?.split('@')[0] || 'מתנדב/ת',
+              mentorName: data.nickname || u.email?.split('@')[0] || 'Peer Mentor',
             });
           } else {
             stopTracking();
           }
         }, () => {
-          // שגיאת Firestore — מנתקים
+          // Firestore error — we sign out
           signOut(getAuth()).catch(() => {});
           setLoading(false);
         });
@@ -262,7 +262,7 @@ export default function App() {
     return () => { unsubAuth(); if (unsubRole) unsubRole(); };
   }, []);
 
-  // מאזין לבקשות חברות ממתינות לbadge
+  // Listens for pending friend requests for the badge
   useEffect(() => {
     if (!user) return;
     const q = query(
@@ -274,16 +274,16 @@ export default function App() {
     return unsub;
   }, [user]);
 
-  // האזנה גלובלית להודעות חדשות — עובדת בכל מסך
+  // Global listener for new messages — works on every screen
   useEffect(() => {
     if (!user) return;
-    // מאזין לכל השיחות של המשתמש
+    // Listens to all of the user's chats
     const chatsQuery = query(
       collection(db, 'chats'),
       where('participants', 'array-contains', user.uid)
     );
-    // chatId -> פונקציית ביטול המאזין להודעה האחרונה של אותה שיחה,
-    // כדי לא ליצור מאזין כפול בכל פעם שהשאילתה החיצונית יורה מחדש
+    // chatId -> the unsubscribe function for the listener on that chat's last message,
+    // so that we do not create a duplicate listener every time the outer query fires again
     const msgUnsubs = {};
 
     const unsubChats = onSnapshot(chatsQuery, snap => {
@@ -301,7 +301,7 @@ export default function App() {
             if (change.type === 'added') {
               const msg = change.doc.data();
               const msgTime = msg.createdAt?.toMillis?.() || 0;
-              // רק הודעות חדשות (פחות מ-5 שניות) מאחרים
+              // Only new messages (less than 5 seconds old) from other people
               if (msg.senderId !== user.uid && Date.now() - msgTime < 5000) {
                 const { sendLocalNotification } = require('./src/notifications');
                 sendLocalNotification(msg.senderName, msg.text);
@@ -311,7 +311,7 @@ export default function App() {
         }, () => {});
       });
 
-      // מנקה מאזינים לשיחות שכבר לא ברשימה (למשל יציאה מקבוצה)
+      // Cleans up listeners for chats that are no longer in the list (for example after leaving a group)
       Object.keys(msgUnsubs).forEach(chatId => {
         if (!currentIds.has(chatId)) {
           msgUnsubs[chatId]();
@@ -326,7 +326,7 @@ export default function App() {
     };
   }, [user]);
 
-  // התפקיד שקובע איזה ניווט מוצג. לאדמין — האזור שנבחר בהתחברות.
+  // The role that decides which navigation is shown. For a system admin — the area picked at login.
   const isAdmin = role === 'admin';
   const effectiveRole = isAdmin ? adminViewRole : role;
 
@@ -370,7 +370,7 @@ export default function App() {
     );
   }
 
-  // אדמין — ממתינים לטעינת האזור הנבחר מהאחסון המקומי
+  // System admin — we wait for the selected area to load from local storage
   if (isAdmin && !adminViewRole) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' }}>
@@ -380,7 +380,7 @@ export default function App() {
   }
 
   if (effectiveRole === 'mentor') {
-    // אדמין נכנס לאזור המנטור ישירות — אין צורך באישור צוות
+    // A system admin enters the mentor area directly — no school staff approval needed
     if (!isAdmin && mentorStatus !== 'approved') {
       return (
         <NavigationContainer>

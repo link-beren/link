@@ -11,12 +11,12 @@ import { colors, radius, font } from '../theme';
 import useRoleGuard from '../hooks/useRoleGuard';
 
 const filters = [
-  { key: 'all', label: 'הכל' },
-  { key: 'gaming', label: '🎮 גיימינג' },
-  { key: 'sports', label: '⚽ ספורט' },
-  { key: 'art', label: '🎨 אמנות' },
-  { key: 'literature', label: '📚 ספרות' },
-  { key: 'science', label: '🔬 מדע' },
+  { key: 'all', label: 'All' },
+  { key: 'gaming', label: '🎮 Gaming' },
+  { key: 'sports', label: '⚽ Sports' },
+  { key: 'art', label: '🎨 Art' },
+  { key: 'literature', label: '📚 Books' },
+  { key: 'science', label: '🔬 Science' },
 ];
 
 const categoryStyle = {
@@ -81,7 +81,7 @@ export default function DiscoverScreen() {
     return unsub;
   }, [user]);
 
-  // early returns — אחרי כל ה-hooks
+  // early returns — after every hook
   if (authorized === null) {
     return (
       <View style={{ flex: 1, backgroundColor: colors.bg, alignItems: 'center', justifyContent: 'center' }}>
@@ -91,7 +91,7 @@ export default function DiscoverScreen() {
   }
   if (!authorized) return null;
 
-  const myName = () => nickname || user?.email?.split('@')[0] || 'משתמש';
+  const myName = () => nickname || user?.email?.split('@')[0] || 'User';
 
   async function toggleJoin(g) {
     try {
@@ -101,14 +101,14 @@ export default function DiscoverScreen() {
         await joinGroup(g.id, user.uid, myName());
       }
     } catch {
-      Alert.alert('שגיאה', 'לא ניתן לעדכן את החברות בקבוצה כרגע');
+      Alert.alert('Something went wrong', 'Your group membership could not be updated right now.');
     }
   }
 
   async function handleCreateGroup() {
     const name = newName.trim();
-    if (!name) { Alert.alert('שגיאה', 'אנא הזן שם קבוצה'); return; }
-    if (!newCategory) { Alert.alert('שגיאה', 'אנא בחר/י קטגוריה'); return; }
+    if (!name) { Alert.alert('Hold on', 'Please enter a group name.'); return; }
+    if (!newCategory) { Alert.alert('Hold on', 'Please pick a category.'); return; }
     setSubmitting(true);
     try {
       const style = categoryStyle[newCategory];
@@ -156,8 +156,8 @@ export default function DiscoverScreen() {
         {creating && (
           <View style={s.formCard}>
             <Text style={s.sectionTitle}>קבוצה חדשה</Text>
-            <TextInput style={s.input} placeholder="שם הקבוצה" placeholderTextColor={colors.text3} value={newName} onChangeText={setNewName} textAlign="right" />
-            <TextInput style={s.textarea} placeholder="תיאור קצר (לא חובה)" placeholderTextColor={colors.text3} value={newDesc} onChangeText={setNewDesc} multiline textAlign="right" />
+            <TextInput style={s.input} placeholder="שם הקבוצה" placeholderTextColor={colors.text3} value={newName} onChangeText={setNewName} textAlign="left" />
+            <TextInput style={s.textarea} placeholder="תיאור קצר (לא חובה)" placeholderTextColor={colors.text3} value={newDesc} onChangeText={setNewDesc} multiline textAlign="left" />
             <View style={s.categoryRow}>
               {filters.slice(1).map(f => (
                 <TouchableOpacity key={f.key} style={[s.chip, newCategory === f.key && s.chipActive]} onPress={() => setNewCategory(f.key)}>

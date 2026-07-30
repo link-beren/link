@@ -76,7 +76,7 @@ export function Modal({
       >
         <header className="ui-modal-head">
           <h2>{title}</h2>
-          <button type="button" onClick={onClose} aria-label="סגור">
+          <button type="button" onClick={onClose} aria-label="Close">
             x
           </button>
         </header>

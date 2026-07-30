@@ -24,7 +24,7 @@ function AppLayout({
       <header className="topbar">
         <div className="brand">Link</div>
         <span className="role-chip">{roleLabel}</span>
-        <nav className="nav" aria-label="ניווט ראשי">
+        <nav className="nav" aria-label="Main navigation">
           {navItems.map((item) => (
             <NavLink key={item.to} to={item.to}>
               {item.label}
@@ -33,9 +33,9 @@ function AppLayout({
           ))}
         </nav>
         <div className="topbar-user">
-          <span>{profile?.nickname || profile?.email || 'משתמש/ת'}</span>
+          <span>{profile?.nickname || profile?.email || 'User'}</span>
           <button type="button" onClick={() => void signOut(auth)}>
-            התנתקות
+            Sign out
           </button>
         </div>
       </header>
@@ -49,14 +49,14 @@ export function StudentLayout() {
 
   return (
     <AppLayout
-      roleLabel="תלמיד/ה"
+      roleLabel="Student"
       navItems={[
-        { to: '/social', label: 'רשת חברתית' },
-        { to: '/mentoring', label: 'מתנדבים' },
-        { to: '/discover', label: 'גלה' },
-        { to: '/friends', label: 'חברים', badge: pendingFriendRequests },
+        { to: '/social', label: 'Social' },
+        { to: '/mentoring', label: 'Peer Mentors' },
+        { to: '/discover', label: 'Discover' },
+        { to: '/friends', label: 'Friends', badge: pendingFriendRequests },
         { to: '/distress', label: 'SOS' },
-        { to: '/profile', label: 'פרופיל' },
+        { to: '/profile', label: 'Profile' },
       ]}
     />
   );
@@ -67,19 +67,19 @@ export function MentorLayout() {
 
   return (
     <AppLayout
-      roleLabel="חונך/ת"
+      roleLabel="Peer Mentor"
       navItems={[
-        { to: '/mentor', label: 'בית' },
-        { to: '/mentor/chat', label: 'חניכים' },
-        { to: '/mentor/hours', label: 'שעות' },
-        { to: '/mentor/activity', label: 'פעילות' },
-        { to: '/mentor/reflection', label: 'רפלקציה' },
-        { to: '/mentor/guide', label: 'מדריך' },
-        { to: '/social', label: 'רשת חברתית' },
-        { to: '/mentoring', label: 'מתנדבים' },
-        { to: '/discover', label: 'גלה' },
-        { to: '/friends', label: 'חברים', badge: pendingFriendRequests },
-        { to: '/profile', label: 'פרופיל' },
+        { to: '/mentor', label: 'Home' },
+        { to: '/mentor/chat', label: 'Mentees' },
+        { to: '/mentor/hours', label: 'Hours' },
+        { to: '/mentor/activity', label: 'Activity' },
+        { to: '/mentor/reflection', label: 'Reflection' },
+        { to: '/mentor/guide', label: 'Guide' },
+        { to: '/social', label: 'Social' },
+        { to: '/mentoring', label: 'Peer Mentors' },
+        { to: '/discover', label: 'Discover' },
+        { to: '/friends', label: 'Friends', badge: pendingFriendRequests },
+        { to: '/profile', label: 'Profile' },
       ]}
     />
   );
@@ -98,10 +98,10 @@ export function SocialLayout() {
 export function StaffLayout() {
   return (
     <AppLayout
-      roleLabel="צוות"
+      roleLabel="Staff"
       navItems={[
-        { to: '/school', label: 'פורטל בית ספר' },
-        { to: '/profile', label: 'פרופיל' },
+        { to: '/school', label: 'School Portal' },
+        { to: '/profile', label: 'Profile' },
       ]}
     />
   );

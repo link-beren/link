@@ -13,7 +13,7 @@ import type { AuthState, MentorStatus, UserProfile, UserRole } from './types';
 export const AuthContext = createContext<AuthState | null>(null);
 
 function isUserRole(value: unknown): value is UserRole {
-  // 'admin' נכלל — בלעדיו הפרופיל של אדמין חוזר בלי role והניתוב נשבר
+  // 'admin' is included — without it an admin's profile comes back with no role and routing breaks
   return (
     value === 'student' ||
     value === 'mentor' ||

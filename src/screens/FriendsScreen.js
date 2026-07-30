@@ -27,7 +27,7 @@ export default function FriendsScreen({ navigation }) {
           const userDoc = await getDoc(doc(db, 'users', data.fromUid));
           return { id: d.id, ...data, senderNickname: userDoc.data()?.nickname || 'משתמש', senderAvatarUrl: userDoc.data()?.avatarUrl };
         } catch {
-          return { id: d.id, ...data, senderNickname: 'משתמש' };
+          return { id: d.id, ...data, senderNickname: 'User' };
         }
       }));
       setRequests(reqs);
@@ -49,8 +49,8 @@ export default function FriendsScreen({ navigation }) {
       await updateDoc(doc(db, 'friendRequests', req.id), { status: 'accepted' });
       await updateDoc(doc(db, 'users', user.uid), { friends: arrayUnion(req.fromUid) });
       await updateDoc(doc(db, 'users', req.fromUid), { friends: arrayUnion(user.uid) });
-      Alert.alert('🎉', `${req.senderNickname} הוסף/ה לחברים!`);
-    } catch { Alert.alert('שגיאה', 'לא ניתן לאשר בקשה'); }
+      Alert.alert('🎉', `${req.senderNickname} was added to your friends!`);
+    } catch { Alert.alert('Something went wrong', 'That request could not be accepted.'); }
   }
 
   async function declineRequest(req) {
@@ -58,9 +58,9 @@ export default function FriendsScreen({ navigation }) {
   }
 
   async function removeFriend(friendUid) {
-    Alert.alert('הסר חבר', 'האם אתה בטוח?', [
-      { text: 'ביטול', style: 'cancel' },
-      { text: 'הסר', style: 'destructive', onPress: async () => {
+    Alert.alert('Remove friend', 'Are you sure?', [
+      { text: 'Cancel', style: 'cancel' },
+      { text: 'Remove', style: 'destructive', onPress: async () => {
         try {
           await updateDoc(doc(db, 'users', user.uid), { friends: arrayRemove(friendUid) });
           await updateDoc(doc(db, 'users', friendUid), { friends: arrayRemove(user.uid) });
@@ -72,7 +72,7 @@ export default function FriendsScreen({ navigation }) {
   if (loading) {
     return (
       <SafeAreaView style={s.safe}>
-        <View style={s.header}><Text style={s.logo}>לינק</Text><Text style={s.title}>❤️ חברים</Text></View>
+        <View style={s.header}><Text style={s.logo}>Link</Text><Text style={s.title}>❤️ Friends</Text></View>
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
@@ -83,33 +83,33 @@ export default function FriendsScreen({ navigation }) {
   return (
     <SafeAreaView style={s.safe}>
       <View style={s.header}>
-        <Text style={s.logo}>לינק</Text>
-        <Text style={s.title}>❤️ חברים</Text>
+        <Text style={s.logo}>Link</Text>
+        <Text style={s.title}>❤️ Friends</Text>
       </View>
       <View style={s.tabs}>
         <TouchableOpacity style={[s.tab, tab === 'requests' && s.tabActive]} onPress={() => setTab('requests')}>
           <Text style={[s.tabTxt, tab === 'requests' && s.tabTxtActive]}>
-            בקשות {requests.length > 0 && <Text style={s.tabBadge}>({requests.length})</Text>}
+            Requests {requests.length > 0 && <Text style={s.tabBadge}>({requests.length})</Text>}
           </Text>
         </TouchableOpacity>
         <TouchableOpacity style={[s.tab, tab === 'all' && s.tabActive]} onPress={() => setTab('all')}>
-          <Text style={[s.tabTxt, tab === 'all' && s.tabTxtActive]}>החברים שלי ({friends.length})</Text>
+          <Text style={[s.tabTxt, tab === 'all' && s.tabTxtActive]}>My friends ({friends.length})</Text>
         </TouchableOpacity>
       </View>
       <ScrollView style={s.scroll} contentContainerStyle={{ gap: 10, paddingBottom: 20 }}>
         {tab === 'requests' && (
           requests.length === 0
-            ? <View style={s.empty}><Text style={s.emptyTxt}>אין בקשות ממתינות 🎉</Text></View>
+            ? <View style={s.empty}><Text style={s.emptyTxt}>No pending requests 🎉</Text></View>
             : requests.map(req => (
               <View key={req.id} style={s.card}>
                 <Avatar uri={req.senderAvatarUrl} name={req.senderNickname} size={46} />
                 <View style={s.info}>
                   <Text style={s.name}>{req.senderNickname}</Text>
-                  <Text style={s.sub}>שלח/ה לך בקשת חברות</Text>
+                  <Text style={s.sub}>Sent you a friend request</Text>
                 </View>
                 <View style={s.actions}>
                   <TouchableOpacity style={s.acceptBtn} onPress={() => acceptRequest(req)}>
-                    <Text style={s.acceptTxt}>✓ אשר</Text>
+                    <Text style={s.acceptTxt}>✓ Accept</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={s.declineBtn} onPress={() => declineRequest(req)}>
                     <Text style={s.declineTxt}>✕</Text>
@@ -120,13 +120,13 @@ export default function FriendsScreen({ navigation }) {
         )}
         {tab === 'all' && (
           friends.length === 0
-            ? <View style={s.empty}><Text style={s.emptyTxt}>אין חברים עדיין 🔍</Text></View>
+            ? <View style={s.empty}><Text style={s.emptyTxt}>No friends yet 🔍</Text></View>
             : friends.map(f => (
               <View key={f.id} style={s.card}>
                 <Avatar uri={f.avatarUrl} name={f.nickname} color={colors.primary} bg={colors.primarySoft} size={46} />
                 <View style={s.info}>
                   <Text style={s.name}>{f.nickname}</Text>
-                  <Text style={s.sub}>{f.role === 'student' ? '🎒 תלמיד/ה' : '🤝 מתנדב/ת'}</Text>
+                  <Text style={s.sub}>{f.role === 'student' ? '🎒 Student' : '🤝 Peer mentor'}</Text>
                 </View>
                 <View style={s.actions}>
                   <TouchableOpacity style={s.declineBtn} onPress={() => navigation.navigate('Chat', { name: f.nickname, avatar: f.nickname?.[0], color: colors.primary, bg: colors.primarySoft, partnerUid: f.id })}>

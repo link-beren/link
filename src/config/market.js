@@ -20,7 +20,7 @@ export const isolationEnabled = () => SCHOOL_ISOLATION === 'strict';
 
 // Grade levels, not classes.
 //
-// The Israeli model assumes a fixed cohort ("ט'1") that a student belongs to
+// The Israeli model assumes a fixed cohort ("9-1") that a student belongs to
 // all day. That only maps onto US elementary school, where one teacher holds
 // one classroom. From grade 6 up, students move between subject teachers and
 // no such cohort exists — so grade level is the only universally meaningful

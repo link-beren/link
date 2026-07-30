@@ -3,10 +3,10 @@ import { doc, setDoc } from 'firebase/firestore';
 import { db } from './firebase';
 import Constants from 'expo-constants';
 
-// ב-Expo Go appOwnership === 'expo', ב-APK זה null או 'standalone'
+// In Expo Go appOwnership === 'expo'; in an APK it is null or 'standalone'
 const isExpoGo = Constants.appOwnership === 'expo';
 
-// תמיד הגדר handler — גם ב-Expo Go וגם ב-APK
+// Always set the handler — both in Expo Go and in the APK
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowBanner: true,
@@ -26,7 +26,7 @@ export async function registerForPushNotifications(userId) {
     }
     if (finalStatus !== 'granted') return null;
 
-    // Push token רק ב-APK
+    // Push token only in the APK
     if (!isExpoGo) {
       try {
         const token = (await Notifications.getExpoPushTokenAsync({
@@ -42,7 +42,7 @@ export async function registerForPushNotifications(userId) {
     }
     return null;
   } catch (error) {
-    console.log('שגיאה בהתראות:', error);
+    console.log('Notifications error:', error);
     return null;
   }
 }
@@ -54,6 +54,6 @@ export async function sendLocalNotification(title, body) {
       trigger: null,
     });
   } catch (error) {
-    console.log('שגיאה בהתראה:', error);
+    console.log('Notification error:', error);
   }
 }

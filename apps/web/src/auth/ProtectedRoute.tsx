@@ -17,7 +17,7 @@ export function ProtectedRoute({
   if (status === 'loading') {
     return (
       <main className="page-shell">
-        <h1>טוען...</h1>
+        <h1>Loading...</h1>
       </main>
     );
   }

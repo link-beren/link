@@ -328,10 +328,10 @@ export default function MentorHomeScreen({ navigation }) {
           </View>
 
           <Text style={s.sectionTitle}>משך השיחה (בדקות)</Text>
-          <TextInput style={s.input} value={minutes} onChangeText={setMinutes} keyboardType="number-pad" placeholder="לדוגמה: 40" placeholderTextColor={colors.text3} textAlign="right" />
+          <TextInput style={s.input} value={minutes} onChangeText={setMinutes} keyboardType="number-pad" placeholder="לדוגמה: 40" placeholderTextColor={colors.text3} textAlign="left" />
 
           <Text style={s.sectionTitle}>רפלקציה (לא חובה)</Text>
-          <TextInput style={s.textarea} value={note} onChangeText={setNote} multiline placeholder="איך הייתה השיחה? מה עבד טוב?" placeholderTextColor={colors.text3} textAlign="right" />
+          <TextInput style={s.textarea} value={note} onChangeText={setNote} multiline placeholder="איך הייתה השיחה? מה עבד טוב?" placeholderTextColor={colors.text3} textAlign="left" />
 
           <TouchableOpacity style={s.submitBtn} onPress={submitHours} disabled={submitting}>
             {submitting ? <ActivityIndicator color="white" /> : <Text style={s.submitBtnTxt}>שלח לאישור הרכזת</Text>}
@@ -352,7 +352,7 @@ const s = StyleSheet.create({
   signOutBtn: { backgroundColor: colors.red, paddingHorizontal: 10, paddingVertical: 5, borderRadius: 99 },
   signOutTxt: { fontSize: 11, fontWeight: font.black, color: 'white' },
 
-  classPill: { fontSize: 12, fontWeight: font.bold, color: colors.text2, marginBottom: 12, textAlign: 'right' },
+  classPill: { fontSize: 12, fontWeight: font.bold, color: colors.text2, marginBottom: 12, textAlign: 'left' },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 14 },
   statCard: { width: '47.5%', backgroundColor: colors.card, borderRadius: radius.lg, padding: 14, borderTopWidth: 3, borderWidth: 1, borderColor: colors.border },
   statIcon: { fontSize: 22, marginBottom: 6 },
@@ -384,7 +384,7 @@ const s = StyleSheet.create({
 
   pickRow: { backgroundColor: colors.card, borderRadius: radius.md, padding: 14, borderWidth: 1.5, borderColor: colors.border },
   pickRowActive: { backgroundColor: colors.primary, borderColor: colors.primary },
-  pickTxt: { fontSize: 14, fontWeight: font.bold, color: colors.text, textAlign: 'right' },
+  pickTxt: { fontSize: 14, fontWeight: font.bold, color: colors.text, textAlign: 'left' },
   input: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: 14, fontSize: 14, color: colors.text },
   textarea: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: 14, fontSize: 13, color: colors.text, minHeight: 90, textAlignVertical: 'top' },
   submitBtn: { backgroundColor: colors.green, borderRadius: radius.full, padding: 15, alignItems: 'center' },

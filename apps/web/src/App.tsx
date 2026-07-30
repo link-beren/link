@@ -35,7 +35,7 @@ function HomeRedirect() {
   if (status === 'loading') {
     return (
       <main className="page-shell">
-        <h1>טוען...</h1>
+        <h1>Loading...</h1>
       </main>
     );
   }
@@ -82,7 +82,7 @@ export default function App() {
   return (
     <div className="app">
       <a className="skip-link" href="#main-content">
-        דילוג לתוכן
+        Skip to content
       </a>
       {!!notification && <Toast>{notification}</Toast>}
       <div id="main-content">
