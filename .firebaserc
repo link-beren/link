@@ -1,0 +1,17 @@
+{
+  "projects": {
+    "default": "link-app-965dd"
+  },
+  "targets": {
+    "link-app-965dd": {
+      "hosting": {
+        "us-web": [
+          "link-app-us"
+        ],
+        "us-school-web": [
+          "link-school-us"
+        ]
+      }
+    }
+  }
+}
